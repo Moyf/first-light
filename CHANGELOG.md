@@ -7,6 +7,10 @@
 - Fix the particle wordmark rendering as a solid black dot-matrix on displays with a fractional device pixel ratio (e.g. 225% scaling): pixel sampling now reads whole pixels, so transparent areas no longer fill with particles and the logo/title keep their proper colors
 - Fix a phantom horizontal scrollbar showing on the home tab whenever the particle effect is enabled: the particle canvas is scaled wider than the wordmark and centered on it, and its transparent margin used to extend the view's scrollable area; it is now clipped at the pane edge, leaving vertical scrolling untouched
 
+### Improvements
+
+- Icon pickers (logo icon, starred-file icons) now source their suggestions from Obsidian's official icon registry (`getIconIds()`) instead of a hardcoded list of ~830 icon ids, so the suggestion list always matches the icons available in the running app version: newly added icons appear automatically, icons Obsidian does not ship are no longer offered, and custom icons registered by other plugins can be picked and render correctly. Stored icon settings stay compatible without reconfiguration
+
 ## [1.4.1] - 2026-09-01
 
 ### Compatibility
