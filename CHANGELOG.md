@@ -5,6 +5,7 @@
 ### Bug Fixes
 
 - Fix the particle wordmark rendering as a solid black dot-matrix on displays with a fractional device pixel ratio (e.g. 225% scaling): pixel sampling now reads whole pixels, so transparent areas no longer fill with particles and the logo/title keep their proper colors
+- Fix a phantom horizontal scrollbar showing on the home tab whenever the particle effect is enabled: the particle canvas is scaled wider than the wordmark and centered on it, and its transparent margin used to extend the view's scrollable area; it is now clipped at the pane edge, leaving vertical scrolling untouched
 
 ## [1.4.1] - 2026-09-01
 
