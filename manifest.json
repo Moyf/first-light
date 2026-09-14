@@ -1,9 +1,9 @@
 {
-	"id": "home-tab-plus",
-	"name": "Home Tab Plus",
+	"id": "first-light",
+	"name": "First Light",
 	"version": "1.4.1",
 	"minAppVersion": "1.13.0",
-	"description": "Your vault, from the first tab — a browser-like home tab with instant file search, starred and recent files, and an optional interactive particle wordmark.",
+	"description": "Your vault, at first light — a browser-like home tab with instant file search, starred and recent files, and an optional interactive particle wordmark.",
 	"author": "Renso, Moy",
 	"authorUrl": "https://github.com/Moyf",
 	"isDesktopOnly": false

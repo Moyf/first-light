@@ -9,17 +9,7 @@
 
 ### Improvements
 
-- Icon pickers (logo icon, starred-file icons) now source their suggestions from Obsidian's official icon registry (`getIconIds()`) instead of a hardcoded list of ~830 icon ids, so the suggestion list always matches the icons available in the running app version: newly added icons appear automatically, icons Obsidian does not ship are no longer offered, and custom icons registered by other plugins can be picked and render correctly. Stored icon settings stay compatible without reconfiguration
-
-## [1.4.1] - 2026-09-01
-
-### Compatibility
-
-- **Plugin renamed back to Home Tab Plus** (`home-tab-plus`): the 1.3.x releases shipped as "First Light" (`first-light`). After updating, Obsidian treats this as a different plugin — re-enable it and re-configure its settings once; the old `first-light` folder can be removed from `.obsidian/plugins/`. Install links now point to `Moyf/home-tab-plus`.
-
-### Features
-
-- Recent files keyboard navigation now supports Home/End to jump straight to the first/last entry
+- Icon pickers (logo icon, starred-file icons) now source their suggestions from Obsidian's official icon registry (`getIconIds()`) instead of a hardcoded list of ~830 icon ids, so the suggestion list always matches the icons available in the running app version: newly added icons appear automatically, icons Obsidian does not ship are no longer offered, and custom icons registered by other plugins can be picked and render correctly
 
 ## [1.4.0] - 2026-08-31
 

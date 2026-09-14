@@ -1,7 +1,7 @@
 {
-	"name": "home-tab-plus",
+	"name": "first-light",
 	"version": "1.4.1",
-	"description": "Your vault, from the first tab — a browser-like home tab with instant file search, starred and recent files, and an optional interactive particle wordmark.",
+	"description": "Your vault, at first light — a browser-like home tab with instant file search, starred and recent files, and an optional interactive particle wordmark.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
