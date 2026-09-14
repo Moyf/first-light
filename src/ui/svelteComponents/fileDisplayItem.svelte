@@ -1,16 +1,15 @@
 <script lang="ts">
     import { File, FilePieChart, FileText, FileAudio, FileImage, FileVideo, LayoutDashboard, Table, Database, X as DeleteIcon, MoreHorizontal} from 'lucide-svelte'
-    import { type TFile, Keymap, type PaneType, App, Menu, getIcon } from 'obsidian';
+    import { type TFile, type IconName, Keymap, type PaneType, App, Menu, getIcon } from 'obsidian';
     import { getFileTypeFromExtension } from 'src/utils/getFileTypeUtils';
 	import type { HomeTabSettings } from 'src/settings';
 	import { createEventDispatcher } from 'svelte';
-	import type { LucideIcon } from 'src/utils/lucideIcons';
 
     export let app: App
     export let file: TFile
     export let pluginSettings: HomeTabSettings
     export let contextualMenu: Menu
-    export let customIcon: LucideIcon | undefined = undefined
+    export let customIcon: IconName | undefined = undefined
     export let selected: boolean = false
 
     // Trim filename if too long

@@ -1,5 +1,4 @@
-import { lucideIcons, type LucideIcon } from "./lucideIcons";
-import { getIcon } from "obsidian";
+import { getIcon, type IconName } from "obsidian";
 
 interface lucideIconOptions{
     size?: number,
@@ -8,9 +7,7 @@ interface lucideIconOptions{
     ariaLabel?: string,
 }
 
-export function getLucideIcon(iconId: LucideIcon, options?: lucideIconOptions): SVGSVGElement | null {
-    if (!lucideIcons.includes(iconId)) return null
-
+export function getLucideIcon(iconId: IconName, options?: lucideIconOptions): SVGSVGElement | null {
     const iconEl = getIcon(iconId)
     if(iconEl) {
         const size = options?.size ?? 24
@@ -34,7 +31,7 @@ export function getLucideIcon(iconId: LucideIcon, options?: lucideIconOptions): 
     return null
 }
 
-export function addLucideIcon(parentElement: HTMLElement, iconId: LucideIcon, options?: lucideIconOptions): void | null{
+export function addLucideIcon(parentElement: HTMLElement, iconId: IconName, options?: lucideIconOptions): void | null{
     const icon = getLucideIcon(iconId, options)
     if(icon) parentElement.appendChild(icon)
 }

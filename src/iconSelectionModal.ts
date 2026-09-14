@@ -1,12 +1,11 @@
-import { App, Modal, Setting } from 'obsidian'
+import { App, getIconIds, Modal, Setting, type IconName } from 'obsidian'
 import iconSuggester from './suggester/iconSuggester'
-import { lucideIcons, type LucideIcon } from './utils/lucideIcons'
 
 export class IconSelectionModal extends Modal{
     icon: string | undefined
-    onSubmit: (icon: LucideIcon) => void
+    onSubmit: (icon: IconName) => void
 
-    constructor(app: App, defaultIcon: LucideIcon | undefined, onSubmit: (icon: LucideIcon) => void){
+    constructor(app: App, defaultIcon: IconName | undefined, onSubmit: (icon: IconName) => void){
         super(app)
 
         this.icon = defaultIcon
@@ -43,7 +42,7 @@ export class IconSelectionModal extends Modal{
                     //     invalidInputIcon.toggleVisibility(false)
                     //     return
                     // }
-                    if(lucideIcons.includes(value as LucideIcon)){
+                    if(getIconIds().includes(value)){
                         this.icon = value
                         invalidInputIcon.toggleVisibility(false)
                     }
@@ -69,7 +68,7 @@ export class IconSelectionModal extends Modal{
                 .setCta()
                 .onClick(() => {
                     if(this.icon){
-                        this.onSubmit(this.icon as LucideIcon)
+                        this.onSubmit(this.icon as IconName)
                     }
                     this.close()
                 }))

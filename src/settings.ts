@@ -1,8 +1,7 @@
-import { App, Setting, PluginSettingTab, normalizePath, Platform } from 'obsidian'
+import { App, Setting, PluginSettingTab, normalizePath, Platform, getIconIds } from 'obsidian'
 import type { IconName, SettingDefinitionItem, SettingDefinitionRender } from 'obsidian'
 import type HomeTab from './main'
 import iconSuggester from './suggester/iconSuggester'
-import { lucideIcons, type LucideIcon } from './utils/lucideIcons'
 import ImageFileSuggester from './suggester/imageSuggester'
 import cssUnitValidator from './utils/cssUnitValidator'
 import isLink from './utils/isLink'
@@ -22,7 +21,7 @@ interface ObjectKeys {
 }
 
 interface logoStore extends ObjectKeys{
-    lucideIcon: LucideIcon | ''
+    lucideIcon: IconName | ''
     imagePath: string
     imageLink: string
 }
@@ -652,8 +651,8 @@ export class HomeTabSettingTab extends PluginSettingTab {
                             }
                         }
                         else if(currentType === 'lucideIcon'){
-                            if(lucideIcons.includes(value as LucideIcon)){
-                                s.logo['lucideIcon'] = value as LucideIcon
+                            if(getIconIds().includes(value)){
+                                s.logo['lucideIcon'] = value as IconName
                                 void this.plugin.saveSettings()
                                 invalidInputIcon.toggleVisibility(false)
                             }

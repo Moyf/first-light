@@ -1,15 +1,14 @@
-import { Component, Notice, TAbstractFile, TFile, type App, type BookmarkItem, type BookmarksPlugin } from "obsidian";
+import { Component, Notice, TAbstractFile, TFile, type App, type BookmarkItem, type BookmarksPlugin, type IconName } from "obsidian";
 import { get, type Writable } from "svelte/store";
 import type HomeTab from "./main";
-import type { LucideIcon } from "./utils/lucideIcons";
 
 export interface bookmarkedFileStore{
     filepath: string
-    iconId: LucideIcon | undefined
+    iconId: IconName | undefined
 }
 export interface bookmarkedFile{
     file: TFile
-    iconId: LucideIcon | undefined
+    iconId: IconName | undefined
 }
 
 export class bookmarkedFilesManager extends Component{
@@ -56,7 +55,7 @@ export class bookmarkedFilesManager extends Component{
         void this.storeBookmarkedFiles()
     }
 
-    public updateFileIcon(file: TFile, iconId: LucideIcon): void{
+    public updateFileIcon(file: TFile, iconId: IconName): void{
         this.bookmarkedFilesStore.update((filesArray) => {
             const itemIndex = filesArray.findIndex((item) => item.file === file)
             filesArray[itemIndex].iconId = iconId

@@ -1,11 +1,12 @@
-import { AbstractInputSuggest, setIcon, type App } from 'obsidian'
+import { AbstractInputSuggest, getIconIds, setIcon, type App } from 'obsidian'
 import type Fuse from 'fuse.js'
 import { ArrayFuzzySearch } from "./fuzzySearch"
-import { lucideIcons } from "../utils/lucideIcons"
 
 /**
  * Lucide icon suggester built on the official AbstractInputSuggest, which
  * handles popover positioning (including popout windows) out of the box.
+ * Icon ids come from the official getIconIds() so the list always matches
+ * the icons available in the running Obsidian version.
  */
 export default class iconSuggester extends AbstractInputSuggest<Fuse.FuseResult<string>>{
     private inputEl: HTMLInputElement
@@ -16,7 +17,7 @@ export default class iconSuggester extends AbstractInputSuggest<Fuse.FuseResult<
     constructor(app: App, inputEl: HTMLInputElement, displayIcon?: boolean){
         super(app, inputEl)
         this.inputEl = inputEl
-        this.iconList = [... lucideIcons]
+        this.iconList = getIconIds()
         this.fuzzySearch = new ArrayFuzzySearch(this.iconList)
         this.displayIcon = displayIcon ?? false
     }
