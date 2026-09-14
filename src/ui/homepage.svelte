@@ -184,6 +184,13 @@
 </main>
   
 <style>
+    /* The particle canvas is zoom× wider than the wordmark and centered, so its
+       transparent margin overflows horizontally and shows a phantom scrollbar
+       on .view-content. Clip it here: `clip` (not `hidden`) so the element does
+       not become a scroll container and vertical scrolling stays on .view-content. */
+    .home-tab{
+        overflow-x: clip;
+    }
     .home-tab-logo svg{
         height: unset;
         width: unset;
