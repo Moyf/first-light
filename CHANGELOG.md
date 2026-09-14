@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Bug Fixes
+
+- Fix the particle wordmark rendering as a solid black dot-matrix on displays with a fractional device pixel ratio (e.g. 225% scaling): pixel sampling now reads whole pixels, so transparent areas no longer fill with particles and the logo/title keep their proper colors
+
 ## [1.4.1] - 2026-09-01
 
 ### Compatibility
