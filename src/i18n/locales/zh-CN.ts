@@ -340,6 +340,10 @@ const zhCN: BaseMessage = {
 			name: '启用粒子特效',
 			desc: '将主页的 Logo 与标题渲染为可交互的粒子点阵，鼠标经过时产生涟漪效果',
 		},
+		particleEffectPreview: {
+			name: '实时预览',
+			desc: '在预览中移动鼠标或点击，即可用当前设置体验粒子交互',
+		},
 		particleEffectColorMode: {
 			name: '颜色',
 			desc: '粒子配色：保留 Logo 与标题的原色、使用单一颜色，或在两种颜色间渐变',
@@ -351,11 +355,11 @@ const zhCN: BaseMessage = {
 		},
 		particleEffectColor: {
 			name: '粒子颜色',
-			desc: '单色模式下粒子的统一颜色，也是渐变色的第一个颜色',
+			desc: '单色模式下粒子的统一颜色，也是渐变色的第一个颜色；浅色与深色主题可分别设置',
 		},
 		particleEffectColor2: {
 			name: '渐变颜色',
-			desc: '渐变色的第二个颜色',
+			desc: '渐变色的第二个颜色；浅色与深色主题可分别设置',
 		},
 		particleEffectGradientAnimation: {
 			name: '颜色模式',
@@ -449,6 +453,8 @@ const zhCN: BaseMessage = {
 	},
 	common: {
 		themeDefault: '跟随主题',
+		themeLight: '浅色',
+		themeDark: '深色',
 		accentColor: '强调色',
 		custom: '自定义',
 		resetToDefault: '重置为默认值',

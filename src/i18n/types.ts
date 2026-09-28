@@ -147,6 +147,7 @@ export interface BaseMessage {
 		titleColor: SettingEntry
 		selectionHighlight: SettingEntry
 		particleEffect: SettingEntry
+		particleEffectPreview: SettingEntry
 		particleEffectColorMode: SettingEntry & { options: DropdownOptions }
 		particleEffectColor: SettingEntry
 		particleEffectColor2: SettingEntry
@@ -173,6 +174,8 @@ export interface BaseMessage {
 	}
 	common: {
 		themeDefault: string
+		themeLight: string
+		themeDark: string
 		accentColor: string
 		custom: string
 		resetToDefault: string

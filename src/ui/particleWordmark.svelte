@@ -2,7 +2,7 @@
     import { onDestroy, onMount } from 'svelte'
     import { pluginSettingsStore } from '../store'
     import { ParticleWordmarkEngine } from '../utils/particleEngine'
-    import { effectiveParticleEffectScale, type HomeTabSettings } from '../settings'
+    import { effectiveParticleEffectColors, effectiveParticleEffectScale, isDarkTheme, type HomeTabSettings } from '../settings'
 
     // Deliberately prop-free: everything is read from the settings store, so
     // parent re-renders can never invalidate this component and trigger
@@ -14,6 +14,7 @@
     let hasBuilt = false
     let loading = false
     let unsubscribeSettings: (() => void) | undefined
+    let themeObserver: MutationObserver | undefined
     let rebuildTimestamps: number[] = []
     let settings: HomeTabSettings | undefined = undefined
 
@@ -55,10 +56,11 @@
     async function createEngine(): Promise<void> {
         if (!rootEl || !settings) return
         reserveLayout()
+        const colors = effectiveParticleEffectColors(settings)
         const next = new ParticleWordmarkEngine(rootEl, {
             colorMode: settings.particleEffectColorMode ?? 'original',
-            color: settings.particleEffectColor,
-            color2: settings.particleEffectColor2,
+            color: colors.color,
+            color2: colors.color2,
             gradientAnimation: settings.particleEffectGradientAnimation ?? 'static',
             gradientAngle: settings.particleEffectGradientAngle ?? 180,
             gradientFrequency: settings.particleEffectGradientFrequency ?? 1,
@@ -131,7 +133,10 @@
             s.particleEffect,
             s.particleEffectColorMode,
             s.particleEffectColor,
+            s.particleEffectColorDark,
             s.particleEffectColor2,
+            s.particleEffectColor2Dark,
+            isDarkTheme(),
             s.particleEffectGradientAnimation,
             s.particleEffectGradientAngle,
             s.particleEffectGradientFrequency,
@@ -169,25 +174,37 @@
 
     onMount(() => {
         let lastAppearance: string | null = null
-        unsubscribeSettings = pluginSettingsStore.subscribe((s) => {
-            if (!s) return
-            settings = s
-            const signature = appearanceSignature(s)
+        const applyAppearance = (): void => {
+            if (!settings) return
+            const signature = appearanceSignature(settings)
             // The first emit drives the initial build; later ones only
             // rebuild when the signature actually changed.
             if (lastAppearance === null) {
                 lastAppearance = signature
-                if (s.particleEffect) scheduleRebuild()
+                if (settings.particleEffect) scheduleRebuild()
                 return
             }
             if (signature === lastAppearance) return
             lastAppearance = signature
             scheduleRebuild()
+        }
+        unsubscribeSettings = pluginSettingsStore.subscribe((s) => {
+            if (!s) return
+            settings = s
+            applyAppearance()
         })
+        // Theme switches don't emit the settings store: watch the body class
+        // so the colors (and the rasterized default text color) rebuild too.
+        const themeBody = rootEl.ownerDocument.body
+        if (themeBody) {
+            themeObserver = new MutationObserver(applyAppearance)
+            themeObserver.observe(themeBody, { attributes: true, attributeFilter: ['class'] })
+        }
     })
 
     onDestroy(() => {
         window.clearTimeout(rebuildTimer)
+        themeObserver?.disconnect()
         destroyEngine()
         if (unsubscribeSettings) unsubscribeSettings()
     })

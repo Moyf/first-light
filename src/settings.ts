@@ -1,5 +1,5 @@
-import { App, Setting, PluginSettingTab, normalizePath, Platform, getIconIds } from 'obsidian'
-import type { IconName, SettingDefinition, SettingDefinitionItem, SettingDefinitionRender } from 'obsidian'
+import { App, Setting, PluginSettingTab, normalizePath, Platform, getIconIds, ColorComponent } from 'obsidian'
+import type { IconName, HexString, SettingDefinition, SettingDefinitionItem, SettingDefinitionRender } from 'obsidian'
 import type HomeTab from './main'
 import iconSuggester from './suggester/iconSuggester'
 import ImageFileSuggester from './suggester/imageSuggester'
@@ -15,6 +15,7 @@ import { formatPeriodicLabel, getAutoPeriodConfigs, hasAutoPeriodSource, PERIOD_
 import { checkFont } from './utils/fontValidator'
 import { t as getLocale } from './i18n'
 import type { SettingEntry } from './i18n/types'
+import ParticleSettingsPreview from './ui/particleSettingsPreview.svelte'
 
 type ColorChoices = 'default' | 'accentColor' | 'custom'
 type LogoChoices = 'default' | 'imagePath' | 'imageLink' | 'lucideIcon' | 'oldLogo' | 'none'
@@ -59,7 +60,9 @@ export interface HomeTabSettings extends ObjectKeys{
     particleEffect: boolean
     particleEffectColorMode: 'original' | 'monochrome' | 'gradient'
     particleEffectColor: string
+    particleEffectColorDark: string
     particleEffectColor2: string
+    particleEffectColor2Dark: string
     particleEffectGradientAnimation: 'static' | 'cycle' | 'breathe'
     particleEffectGradientAngle: number
     particleEffectGradientFrequency: number
@@ -154,7 +157,9 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     particleEffect: false,
     particleEffectColorMode: 'original',
     particleEffectColor: '#6C31E3',
+    particleEffectColorDark: '#A78BFA',
     particleEffectColor2: '#E36C31',
+    particleEffectColor2Dark: '#E89464',
     particleEffectGradientAnimation: 'static',
     particleEffectGradientAngle: 180,
     particleEffectGradientFrequency: 1,
@@ -254,6 +259,31 @@ export function normalizeVaultStatsSettings(settings: HomeTabSettings): void {
 export function effectiveParticleEffectScale(settings: HomeTabSettings): number {
     if (Platform.isMobile) return settings.particleEffectScaleMobile ?? DEFAULT_SETTINGS.particleEffectScaleMobile
     return settings.particleEffectScale ?? DEFAULT_SETTINGS.particleEffectScale
+}
+
+/** Obsidian toggles these body classes when the theme switches. */
+export function isDarkTheme(): boolean {
+    return document.body.classList.contains('theme-dark')
+}
+
+/**
+ * Particle colors follow the theme: monochrome/gradient modes resolve the
+ * per-theme value, falling back to the light color when the dark one was
+ * never set (older data.json) or was cleared.
+ */
+export function effectiveParticleEffectColors(settings: HomeTabSettings): { color: string; color2: string } {
+    const pick = (value: string | undefined, fallback: string): string =>
+        value && value.trim() !== '' ? value : fallback
+    if (isDarkTheme()) {
+        return {
+            color: pick(settings.particleEffectColorDark, settings.particleEffectColor),
+            color2: pick(settings.particleEffectColor2Dark, settings.particleEffectColor2),
+        }
+    }
+    return {
+        color: pick(settings.particleEffectColor, DEFAULT_SETTINGS.particleEffectColor),
+        color2: pick(settings.particleEffectColor2, DEFAULT_SETTINGS.particleEffectColor2),
+    }
 }
 
 export class HomeTabSettingTab extends PluginSettingTab {
@@ -799,6 +829,15 @@ export class HomeTabSettingTab extends PluginSettingTab {
                         desc: t.page.particleEffect.desc,
                         items: [
                             {
+                                name: t.setting.particleEffectPreview.name,
+                                desc: t.setting.particleEffectPreview.desc,
+                                render: (setting) => {
+                                    setting.setClass('harbor-particle-preview')
+                                    const preview = new ParticleSettingsPreview({ target: setting.settingEl })
+                                    return () => preview.$destroy()
+                                },
+                            },
+                            {
                                 name: t.setting.particleEffect.name,
                                 desc: t.setting.particleEffect.desc,
                                 control: { type: 'toggle', key: 'particleEffect', defaultValue: false },
@@ -815,29 +854,13 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                         name: t.setting.particleEffectColor.name,
                                         desc: t.setting.particleEffectColor.desc,
                                         visible: () => s.particleEffect && s.particleEffectColorMode !== 'original',
-                                        render: (setting) => {
-                                            setting.addColorPicker((picker) => picker
-                                                .setValue(s.particleEffectColor)
-                                                .onChange((value) => {
-                                                    s.particleEffectColor = value
-                                                    void this.plugin.saveSettings()
-                                                }))
-                                            this.addResetButton(setting, 'particleEffectColor')
-                                        },
+                                        render: (setting) => this.renderThemeColorSetting(setting, t, 'particleEffectColor'),
                                     },
                                     {
                                         name: t.setting.particleEffectColor2.name,
                                         desc: t.setting.particleEffectColor2.desc,
                                         visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient',
-                                        render: (setting) => {
-                                            setting.addColorPicker((picker) => picker
-                                                .setValue(s.particleEffectColor2)
-                                                .onChange((value) => {
-                                                    s.particleEffectColor2 = value
-                                                    void this.plugin.saveSettings()
-                                                }))
-                                            this.addResetButton(setting, 'particleEffectColor2')
-                                        },
+                                        render: (setting) => this.renderThemeColorSetting(setting, t, 'particleEffectColor2'),
                                     },
                                     this.dropdownWithReset('particleEffectGradientAnimation', t.setting.particleEffectGradientAnimation.name, t.setting.particleEffectGradientAnimation.desc, t.setting.particleEffectGradientAnimation.options, {
                                         visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient',
@@ -923,6 +946,44 @@ export class HomeTabSettingTab extends PluginSettingTab {
                 ],
             },
         ]
+    }
+
+    /**
+     * Theme-aware color row: one picker per theme (light/dark), stacked like
+     * Obsidian's own per-theme accent control. Reset restores both values.
+     */
+    private renderThemeColorSetting(
+        setting: Setting,
+        t: ReturnType<typeof getLocale>,
+        baseKey: 'particleEffectColor' | 'particleEffectColor2',
+    ): void {
+        const s = this.plugin.settings
+        setting.setClass('harbor-theme-color')
+        const entries = [
+            { label: t.common.themeLight, key: baseKey },
+            { label: t.common.themeDark, key: `${baseKey}Dark` },
+        ] as const
+        const stack = setting.controlEl.createDiv('harbor-theme-color-stack')
+        for (const entry of entries) {
+            const row = stack.createDiv('harbor-theme-color-row')
+            row.createSpan({ text: entry.label, cls: 'harbor-theme-color-label' })
+            new ColorComponent(row)
+                .setValue((s[entry.key] ?? '') as HexString)
+                .onChange((value) => {
+                    s[entry.key] = value
+                    void this.plugin.saveSettings()
+                })
+        }
+        setting.addExtraButton((button) => button
+            .setIcon('reset')
+            .setTooltip(t.common.resetToDefault)
+            .onClick(async () => {
+                for (const entry of entries) {
+                    s[entry.key] = DEFAULT_SETTINGS[entry.key]
+                }
+                await this.plugin.saveSettings()
+                this.update()
+            }))
     }
 
     /** Logo value input with the suggester matching the selected logo type */

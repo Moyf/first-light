@@ -340,6 +340,10 @@ const en: BaseMessage = {
 			name: 'Enable particle effect',
 			desc: 'Render the Harbor Tab logo and title as an interactive particle grid that ripples around the cursor',
 		},
+		particleEffectPreview: {
+			name: 'Live preview',
+			desc: 'Move the pointer over the preview (or tap it) to try the interaction with the current settings',
+		},
 		particleEffectColorMode: {
 			name: 'Color',
 			desc: 'Particle coloring: keep the original logo and title colors, use a single color, or blend two colors in a gradient',
@@ -351,11 +355,11 @@ const en: BaseMessage = {
 		},
 		particleEffectColor: {
 			name: 'Particle color',
-			desc: 'Color used by all particles in monochrome mode, and the first gradient color',
+			desc: 'Color used by all particles in monochrome mode, and the first gradient color; set separately for light and dark themes',
 		},
 		particleEffectColor2: {
 			name: 'Gradient color',
-			desc: 'Second color of the gradient',
+			desc: 'Second color of the gradient; set separately for light and dark themes',
 		},
 		particleEffectGradientAnimation: {
 			name: 'Color mode',
@@ -449,6 +453,8 @@ const en: BaseMessage = {
 	},
 	common: {
 		themeDefault: 'Theme default',
+		themeLight: 'Light',
+		themeDark: 'Dark',
 		accentColor: 'Accent color',
 		custom: 'Custom',
 		resetToDefault: 'Reset to default',
