@@ -57,6 +57,12 @@ export interface HomeTabSettings extends ObjectKeys{
     fontColor?: string
     fontColorType: ColorChoices
     fontWeight: number
+    titleMargin: number
+    titleMarginIndividual: boolean
+    titleMarginTop: number
+    titleMarginRight: number
+    titleMarginBottom: number
+    titleMarginLeft: number
     particleEffect: boolean
     particleEffectColorMode: 'original' | 'monochrome' | 'gradient'
     particleEffectColor: string
@@ -154,6 +160,13 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     fontSize: '4em',
     fontColorType: 'default',
     fontWeight: 600,
+    // 0 keeps the historical (margin-free) title layout intact for existing users
+    titleMargin: 0,
+    titleMarginIndividual: false,
+    titleMarginTop: 0,
+    titleMarginRight: 0,
+    titleMarginBottom: 0,
+    titleMarginLeft: 0,
     particleEffect: false,
     particleEffectColorMode: 'original',
     particleEffectColor: '#6C31E3',
@@ -382,10 +395,10 @@ export class HomeTabSettingTab extends PluginSettingTab {
                 control: { type: 'toggle', key: 'closePreviousSessionTabs' },
             },
 
-            // Search — sub-page entry under its own heading
+            // Search & new note — sibling sub-page entries in one group
             {
                 type: 'group',
-                heading: t.group.search,
+                heading: t.group.searchAndNewNote,
                 items: [
                     {
                         type: 'page',
@@ -487,43 +500,43 @@ export class HomeTabSettingTab extends PluginSettingTab {
                             },
                         ],
                     },
-                ],
-            },
 
-            // New note — its own top-level page, a sibling of the search group
-            {
-                type: 'page',
-                name: t.page.newNote.name,
-                desc: t.page.newNote.desc,
-                items: [
+                    // New note — sibling of the search sub-page in the same group
                     {
-                        name: t.setting.showNewNoteButton.name,
-                        desc: t.setting.showNewNoteButton.desc,
-                        control: { type: 'toggle', key: 'showNewNoteButton', defaultValue: true },
-                    },
-                    {
-                        name: t.setting.newNoteUseCommand.name,
-                        desc: t.setting.newNoteUseCommand.desc,
-                        visible: () => s.showNewNoteButton,
-                        control: { type: 'toggle', key: 'newNoteUseCommand', defaultValue: false },
-                    },
-                    {
-                        name: t.setting.newNoteCommandId.name,
-                        desc: t.setting.newNoteCommandId.desc,
-                        visible: () => s.showNewNoteButton && s.newNoteUseCommand,
-                        render: (setting) => this.renderNewNoteCommand(setting, t),
-                    },
-                    {
-                        name: t.setting.newNoteDefaultFolder.name,
-                        desc: t.setting.newNoteDefaultFolder.desc,
-                        visible: () => s.showNewNoteButton && !s.newNoteUseCommand,
-                        render: (setting) => this.renderNewNoteDefaultFolder(setting, t),
-                    },
-                    {
-                        name: t.setting.newNoteOnUnmatchedName.name,
-                        desc: t.setting.newNoteOnUnmatchedName.desc,
-                        visible: () => s.showNewNoteButton && !s.newNoteUseCommand,
-                        control: { type: 'toggle', key: 'newNoteOnUnmatchedName', defaultValue: true },
+                        type: 'page',
+                        name: t.page.newNote.name,
+                        desc: t.page.newNote.desc,
+                        items: [
+                            {
+                                name: t.setting.showNewNoteButton.name,
+                                desc: t.setting.showNewNoteButton.desc,
+                                control: { type: 'toggle', key: 'showNewNoteButton', defaultValue: true },
+                            },
+                            {
+                                name: t.setting.newNoteUseCommand.name,
+                                desc: t.setting.newNoteUseCommand.desc,
+                                visible: () => s.showNewNoteButton,
+                                control: { type: 'toggle', key: 'newNoteUseCommand', defaultValue: false },
+                            },
+                            {
+                                name: t.setting.newNoteCommandId.name,
+                                desc: t.setting.newNoteCommandId.desc,
+                                visible: () => s.showNewNoteButton && s.newNoteUseCommand,
+                                render: (setting) => this.renderNewNoteCommand(setting, t),
+                            },
+                            {
+                                name: t.setting.newNoteDefaultFolder.name,
+                                desc: t.setting.newNoteDefaultFolder.desc,
+                                visible: () => s.showNewNoteButton && !s.newNoteUseCommand,
+                                render: (setting) => this.renderNewNoteDefaultFolder(setting, t),
+                            },
+                            {
+                                name: t.setting.newNoteOnUnmatchedName.name,
+                                desc: t.setting.newNoteOnUnmatchedName.desc,
+                                visible: () => s.showNewNoteButton && !s.newNoteUseCommand,
+                                control: { type: 'toggle', key: 'newNoteOnUnmatchedName', defaultValue: true },
+                            },
+                        ],
                     },
                 ],
             },
@@ -819,6 +832,46 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 visible: () => s.fontColorType === 'custom',
                                 control: { type: 'color', key: 'fontColor', defaultValue: '#000000' },
                             },
+                            {
+                                type: 'group',
+                                heading: t.group.titleMargin,
+                                items: [
+                                    {
+                                        name: t.setting.titleMarginIndividual.name,
+                                        desc: t.setting.titleMarginIndividual.desc,
+                                        render: (setting) => {
+                                            setting
+                                                .addToggle((toggle) => toggle
+                                                    .setValue(s.titleMarginIndividual)
+                                                    .onChange(async (value) => {
+                                                        s.titleMarginIndividual = value
+                                                        await this.plugin.saveSettings()
+                                                        this.update() // rebuild to show/hide the per-direction margin sliders
+                                                    }))
+                                        },
+                                    },
+                                    {
+                                        ...this.sliderWithReset('titleMargin', t.setting.titleMargin.name, t.setting.titleMargin.desc, 0, 50, 1),
+                                        visible: () => !s.titleMarginIndividual,
+                                    },
+                                    {
+                                        ...this.sliderWithReset('titleMarginTop', t.setting.titleMarginTop.name, t.setting.titleMarginTop.desc, 0, 50, 1),
+                                        visible: () => s.titleMarginIndividual,
+                                    },
+                                    {
+                                        ...this.sliderWithReset('titleMarginRight', t.setting.titleMarginRight.name, t.setting.titleMarginRight.desc, 0, 50, 1),
+                                        visible: () => s.titleMarginIndividual,
+                                    },
+                                    {
+                                        ...this.sliderWithReset('titleMarginBottom', t.setting.titleMarginBottom.name, t.setting.titleMarginBottom.desc, 0, 50, 1),
+                                        visible: () => s.titleMarginIndividual,
+                                    },
+                                    {
+                                        ...this.sliderWithReset('titleMarginLeft', t.setting.titleMarginLeft.name, t.setting.titleMarginLeft.desc, 0, 50, 1),
+                                        visible: () => s.titleMarginIndividual,
+                                    },
+                                ],
+                            },
                         ],
                     },
                     this.dropdownWithReset('selectionHighlight', t.setting.selectionHighlight.name, t.setting.selectionHighlight.desc,
@@ -829,18 +882,19 @@ export class HomeTabSettingTab extends PluginSettingTab {
                         desc: t.page.particleEffect.desc,
                         items: [
                             {
+                                name: t.setting.particleEffect.name,
+                                desc: t.setting.particleEffect.desc,
+                                control: { type: 'toggle', key: 'particleEffect', defaultValue: false },
+                            },
+                            {
                                 name: t.setting.particleEffectPreview.name,
                                 desc: t.setting.particleEffectPreview.desc,
+                                visible: () => s.particleEffect,
                                 render: (setting) => {
                                     setting.setClass('harbor-particle-preview')
                                     const preview = new ParticleSettingsPreview({ target: setting.settingEl })
                                     return () => preview.$destroy()
                                 },
-                            },
-                            {
-                                name: t.setting.particleEffect.name,
-                                desc: t.setting.particleEffect.desc,
-                                control: { type: 'toggle', key: 'particleEffect', defaultValue: false },
                             },
                             {
                                 type: 'group',

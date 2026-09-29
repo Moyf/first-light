@@ -25,6 +25,14 @@
     .preview-box :global(.home-tab-wordmark-container){
         margin-bottom: 0;
     }
+    /* The settings window styles hide raw headings inside the tab content
+       (.vertical-tab-content h1 { display: none }): the preview's wordmark
+       title is a real h1 and would collapse to zero height, which the
+       particle engine reads as an unmeasurable source and never builds.
+       Outranks the host rule (0,2,1 > 0,1,1) without !important. */
+    .preview-box :global(.home-tab-wordmark h1){
+        display: block;
+    }
     @media(max-width: 600px){
         .preview-box{
             height: 160px;

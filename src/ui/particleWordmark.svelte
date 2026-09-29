@@ -18,8 +18,26 @@
     let rebuildTimestamps: number[] = []
     let settings: HomeTabSettings | undefined = undefined
 
+    // The first build can run while the host view or settings preview is still
+    // settling (zero-size box, a just-inserted DOM, late fonts), and the engine
+    // then falls back to the static rendering and nothing would ever retry it.
+    // A bounded, delayed retry loop gives the layout time to settle; it is
+    // invalidated by any newer attempt, rebuild, teardown or disable.
+    const BUILD_RETRY_LIMIT = 20
+    const BUILD_RETRY_DELAY = 150
+    let buildAttempt = 0
+    let buildRetries = 0
+    let retryTimer: number | undefined
+
+    function clearBuildRetry(): void {
+        window.clearTimeout(retryTimer)
+        retryTimer = undefined
+    }
+
     function destroyEngine(): void {
         console.log('[home-tab] particle: destroying engine')
+        buildAttempt++
+        clearBuildRetry()
         loading = false
         releaseLayout()
         if (engine) {
@@ -55,6 +73,8 @@
      */
     async function createEngine(): Promise<void> {
         if (!rootEl || !settings) return
+        const attempt = ++buildAttempt
+        clearBuildRetry()
         reserveLayout()
         const colors = effectiveParticleEffectColors(settings)
         const next = new ParticleWordmarkEngine(rootEl, {
@@ -77,7 +97,6 @@
         engine = next
         loading = true
         const tookOver = await next.build()
-        loading = false
         // A newer rebuild superseded this one (shared `engine` moved on):
         // leave the current engine alone instead of tearing it down.
         if (engine !== next) return
@@ -86,12 +105,35 @@
             releaseLayout()
             next.destroy()
             engine = null
+            console.warn(`[home-tab] particle: build fell back (attempt ${attempt}, retry ${buildRetries}/${BUILD_RETRY_LIMIT})`)
+            // Keep `loading` (and with it the hidden static wordmark) while
+            // retries are pending, so the fallback never flashes between
+            // attempts; it is only restored once the retries give up.
+            if (settings.particleEffect && buildRetries < BUILD_RETRY_LIMIT) {
+                scheduleBuildRetry(attempt)
+            } else {
+                loading = false
+            }
+            return
         }
+        console.log(`[home-tab] particle: engine took over after ${buildRetries} retries`)
+        loading = false
+        buildRetries = 0
+    }
+
+    /** Retries a failed build a bounded number of times unless superseded. */
+    function scheduleBuildRetry(attempt: number): void {
+        buildRetries++
+        retryTimer = window.setTimeout(() => {
+            retryTimer = undefined
+            if (buildAttempt === attempt) void createEngine()
+        }, BUILD_RETRY_DELAY)
     }
 
     /** Destroys the engine and rebuilds it with the current settings. */
     function rebuildEngine(): void {
         rebuildTimer = undefined
+        buildRetries = 0
         destroyEngine()
         void createEngine()
     }
@@ -169,6 +211,12 @@
             s.fontWeight,
             s.fontColorType,
             s.fontColor,
+            s.titleMargin,
+            s.titleMarginIndividual,
+            s.titleMarginTop,
+            s.titleMarginRight,
+            s.titleMarginBottom,
+            s.titleMarginLeft,
         ].join('|')
     }
 

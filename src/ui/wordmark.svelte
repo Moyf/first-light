@@ -29,6 +29,14 @@
         bottom: (pluginSettings?.logoMarginIndividual ? pluginSettings.logoMarginBottom : pluginSettings?.logoMargin) ?? 12,
         left: (pluginSettings?.logoMarginIndividual ? pluginSettings.logoMarginLeft : pluginSettings?.logoMargin) ?? 12,
     }
+
+    // Title margins: same scheme as the logo margins (0 preserves the old layout)
+    $: titleMargins = {
+        top: (pluginSettings?.titleMarginIndividual ? pluginSettings.titleMarginTop : pluginSettings?.titleMargin) ?? 0,
+        right: (pluginSettings?.titleMarginIndividual ? pluginSettings.titleMarginRight : pluginSettings?.titleMargin) ?? 0,
+        bottom: (pluginSettings?.titleMarginIndividual ? pluginSettings.titleMarginBottom : pluginSettings?.titleMargin) ?? 0,
+        left: (pluginSettings?.titleMarginIndividual ? pluginSettings.titleMarginLeft : pluginSettings?.titleMargin) ?? 0,
+    }
 </script>
 
 <ParticleWordmark>
@@ -137,7 +145,11 @@
                 {/if}
             </div>
         {/if}
-        <div class=home-tab-wordmark>
+        <div class=home-tab-wordmark
+            style:margin-top="{titleMargins.top}px"
+            style:margin-right="{titleMargins.right}px"
+            style:margin-bottom="{titleMargins.bottom}px"
+            style:margin-left="{titleMargins.left}px">
             <h1 style="font-family: {pluginSettings.customFont === 'interfaceFont' ? 'var(--interface-font)' : pluginSettings.customFont === 'textFont' ? 'var(--font-text)' : pluginSettings.customFont === 'monospaceFont' ? 'var(--font-monospace)' : pluginSettings.font};
                         font-size: {pluginSettings.fontSize};
                         font-weight: {pluginSettings.fontWeight.toString()};

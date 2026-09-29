@@ -34,13 +34,14 @@ const en: BaseMessage = {
 		openInNewWindow: 'Open in new window',
 	},
 	group: {
-		search: 'Search box',
+		searchAndNewNote: 'Search & new note',
 		files: 'Displayed content',
 		appearance: 'Appearance',
 		developer: 'Developer',
 		headingJump: 'Heading navigation',
 		results: 'Results display',
 		logoLayout: 'Logo layout',
+		titleMargin: 'Title margin',
 		particleStyle: 'Style',
 		particleCanvas: 'Canvas',
 		particleInteraction: 'Interaction',
@@ -303,6 +304,30 @@ const en: BaseMessage = {
 		logoScale: {
 			name: 'Logo scale',
 			desc: 'Set the logo dimensions relative to the title font size.',
+		},
+		titleMargin: {
+			name: 'Title margin',
+			desc: 'Set the spacing around the title, in pixels.',
+		},
+		titleMarginIndividual: {
+			name: 'Individual margins',
+			desc: 'Set the margin for each side of the title separately.',
+		},
+		titleMarginTop: {
+			name: 'Top margin',
+			desc: 'Spacing above the title, in pixels.',
+		},
+		titleMarginRight: {
+			name: 'Right margin',
+			desc: 'Spacing to the right of the title, in pixels.',
+		},
+		titleMarginBottom: {
+			name: 'Bottom margin',
+			desc: 'Spacing below the title, in pixels.',
+		},
+		titleMarginLeft: {
+			name: 'Left margin',
+			desc: 'Spacing to the left of the title, in pixels.',
 		},
 		title: {
 			name: 'Title',

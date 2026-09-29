@@ -47,13 +47,14 @@ export interface BaseMessage {
 		openInNewWindow: string
 	}
 	group: {
-		search: string
+		searchAndNewNote: string
 		files: string
 		appearance: string
 		developer: string
 		headingJump: string
 		results: string
 		logoLayout: string
+		titleMargin: string
 		particleStyle: string
 		particleCanvas: string
 		particleInteraction: string
@@ -136,6 +137,12 @@ export interface BaseMessage {
 		logoMarginBottom: SettingEntry
 		logoMarginLeft: SettingEntry
 		logoScale: SettingEntry
+		titleMargin: SettingEntry
+		titleMarginIndividual: SettingEntry
+		titleMarginTop: SettingEntry
+		titleMarginRight: SettingEntry
+		titleMarginBottom: SettingEntry
+		titleMarginLeft: SettingEntry
 		title: SettingEntry
 		titleFont: SettingEntry & {
 			invalidTooltip: string

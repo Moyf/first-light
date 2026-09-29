@@ -52,6 +52,27 @@ export interface ParticleWordmarkOptions {
 
 export type AmbientMotion = 'none' | 'wave' | 'float' | 'undulate' | 'pulse' | 'ripple' | 'breathe'
 
+// Offscreen raster headroom. Glyph ink can overflow the measured content box
+// (CJK descenders, tight line boxes), and a build that runs during a layout
+// shift can measure a box smaller than the final one; without headroom the
+// overflowing ink is clipped exactly at the raster edge and the sampled
+// boundary pixels turn into a permanent line of dots on the canvas edge.
+// The pad is translated away before sampling, so particle positions are
+// unaffected — overflow ink simply falls outside the canvas instead of
+// piling up on its boundary.
+const RASTER_PAD_MIN = 8 // CSS px
+const RASTER_PAD_MAX = 48 // CSS px
+const RASTER_PAD_RATIO = 0.08 // fraction of the content height
+// Samples this close to the content-box edge are dropped. The anti-aliased
+// bottom fringe of glyph ink (CJK fonts in particular) sits within a pixel or
+// two of the line-box edge; sampling it turns into a thin dotted line stuck
+// to the canvas edge. Real ink never comes this close to the box edge.
+const RASTER_CONTENT_INSET = 2 // CSS px
+
+function rasterPadFor(contentHeight: number): number {
+    return Math.min(RASTER_PAD_MAX, Math.max(RASTER_PAD_MIN, Math.round(contentHeight * RASTER_PAD_RATIO)))
+}
+
 interface Particle {
     x: number
     y: number
@@ -77,6 +98,13 @@ type DrawOp =
 interface CapturedSources {
     ops: DrawOp[]
     hiddenElements: HTMLElement[]
+    /**
+     * Sources that exist in the DOM but could not be measured (zero-size box,
+     * e.g. a freshly mounted preview or a still-settling layout). Building
+     * with them would silently drop the logo or the title from the particles,
+     * so the build treats them as "not ready yet" and bails instead.
+     */
+    pending: number
 }
 
 // Cursor-ripple physics. Every particle is pulled back to its home position by
@@ -212,6 +240,8 @@ export class ParticleWordmarkEngine {
     private canvas: HTMLCanvasElement | null = null
     private renderContext: CanvasRenderingContext2D | null = null
     private scale = 1
+    /** Headroom (CSS px) padded around the content box in the offscreen raster. */
+    private rasterPad = 0
     /** Cached downsample chain of the glow bloom, sized to the canvas. */
     private glowChain: HTMLCanvasElement[] = []
     private glowChainWidth = 0
@@ -322,41 +352,52 @@ export class ParticleWordmarkEngine {
      * took over, false when it fell back to the normal DOM rendering.
      */
     async build(): Promise<boolean> {
-        if (this.destroyed || !this.container.isConnected) return false
+        if (this.destroyed || !this.container.isConnected) return this.failBuild('container not connected')
         const token = ++this.buildToken
 
         const containerRect = this.resolveContentRect()
-        if (containerRect.width <= 0 || containerRect.height <= 0) return false
+        if (containerRect.width <= 0 || containerRect.height <= 0) return this.failBuild(`content box has zero size (${containerRect.width.toFixed(1)}x${containerRect.height.toFixed(1)})`)
 
         const sources = this.collectSources(containerRect)
-        if (sources.ops.length === 0) return false
+        if (sources.pending > 0) return this.failBuild(`source not measurable yet (pending=${sources.pending})`)
+        if (sources.ops.length === 0) return this.failBuild('no wordmark sources found')
 
         // Popout windows may sit on a different display: resolve the pixel
         // ratio from the container's own window.
         const scale = Math.max(2, this.container.ownerDocument.defaultView?.devicePixelRatio || 1)
+        // Headroom around the measured content box: glyph ink that overflows
+        // it (CJK descenders, tight line boxes) or a measurement taken during
+        // a layout shift would otherwise be clipped at the raster edge and
+        // sampled into a stuck line of dots along the canvas edge.
+        const pad = rasterPadFor(containerRect.height)
         const offscreen = createEl('canvas')
-        offscreen.width = Math.ceil(containerRect.width * scale)
-        offscreen.height = Math.ceil(containerRect.height * scale)
-        const offscreenContext = offscreen.getContext('2d')
+        offscreen.width = Math.ceil((containerRect.width + pad * 2) * scale)
+        offscreen.height = Math.ceil((containerRect.height + pad * 2) * scale)
+        const offscreenContext = offscreen.getContext('2d', { willReadFrequently: true })
         if (!offscreenContext) return false
         offscreenContext.scale(scale, scale)
+        offscreenContext.translate(pad, pad)
+        this.rasterPad = pad
 
         for (const op of sources.ops) {
-            if (this.destroyed || token !== this.buildToken) return false
+            if (this.destroyed || token !== this.buildToken) return this.failBuild('raster aborted (destroyed or superseded)')
             try {
                 await this.applyDrawOp(offscreenContext, op)
             } catch (error) {
                 console.warn('[home-tab] Particle effect: a wordmark source could not be rasterized and was skipped.', error)
             }
         }
-        if (this.destroyed || token !== this.buildToken) return false
+        if (this.destroyed || token !== this.buildToken) return this.failBuild('raster aborted (destroyed or superseded)')
 
         this.scale = scale
         this.contentWidth = containerRect.width
         this.contentHeight = containerRect.height
         // The canvas and the reserved layout space are zoom× the content size.
-        this.cssWidth = containerRect.width * this.zoom
-        this.cssHeight = containerRect.height * this.zoom
+        // Rounded to whole CSS pixels: a fractional canvas box (zoom 1.9 of a
+        // fractional content height) makes the browser resample the integer
+        // device bitmap subpixel-wise and streaks 1px artifacts at the edges.
+        this.cssWidth = Math.round(containerRect.width * this.zoom)
+        this.cssHeight = Math.round(containerRect.height * this.zoom)
         // The zoomed canvas is centered on the container box.
         this.mouseOffsetX = (this.cssWidth - containerRect.width) / 2
         this.mouseOffsetY = 0
@@ -368,13 +409,19 @@ export class ParticleWordmarkEngine {
             // makes getImageData throw: fall back to the normal rendering.
             console.warn('[home-tab] Particle effect: unable to sample the wordmark pixels (a remote logo image can block canvas reads); falling back to the normal rendering.', error)
             this.destroy()
-            return false
+            return this.failBuild('canvas read blocked (tainted)')
         }
 
-        if (this.particles.length === 0) return false
+        if (this.particles.length === 0) return this.failBuild('no particles sampled (blank raster)')
 
         this.activate(sources)
         return true
+    }
+
+    /** Logs why a build fell back and resolves to false. */
+    private failBuild(reason: string): false {
+        console.warn(`[home-tab] particle: build failed: ${reason}`)
+        return false
     }
 
     /** Fully cleans up: cancels the animation, removes listeners/observers and the canvas, restores the original elements. */
@@ -400,14 +447,24 @@ export class ParticleWordmarkEngine {
         if (contentRect.width <= 0 || contentRect.height <= 0) return
 
         const scale = Math.max(2, this.container.ownerDocument.defaultView?.devicePixelRatio || 1)
+        const sources = this.collectSources(contentRect)
+        // A source that is temporarily unmeasurable (or gone) must not wipe
+        // the live canvas: keep the current particles instead of resampling.
+        if (sources.pending > 0 || sources.ops.length === 0) return
+        // Sample-time math (lattice step, content inset) reads this.scale:
+        // update it before rasterizing, not only when swapping the result in.
+        this.scale = scale
+        const pad = rasterPadFor(contentRect.height)
         const offscreen = createEl('canvas')
-        offscreen.width = Math.ceil(contentRect.width * scale)
-        offscreen.height = Math.ceil(contentRect.height * scale)
-        const offscreenContext = offscreen.getContext('2d')
+        offscreen.width = Math.ceil((contentRect.width + pad * 2) * scale)
+        offscreen.height = Math.ceil((contentRect.height + pad * 2) * scale)
+        const offscreenContext = offscreen.getContext('2d', { willReadFrequently: true })
         if (!offscreenContext) return
         offscreenContext.scale(scale, scale)
+        offscreenContext.translate(pad, pad)
+        this.rasterPad = pad
 
-        for (const op of this.collectSources(contentRect).ops) {
+        for (const op of sources.ops) {
             if (this.destroyed || token !== this.buildToken) return
             try {
                 await this.applyDrawOp(offscreenContext, op)
@@ -420,7 +477,6 @@ export class ParticleWordmarkEngine {
         try {
             const particles = this.sampleParticles(offscreen, offscreenContext)
             if (this.destroyed || token !== this.buildToken || !this.canvas || !this.renderContext) return
-            this.scale = scale
             this.contentWidth = contentRect.width
             this.contentHeight = contentRect.height
             this.cssWidth = contentRect.width * this.zoom
@@ -451,6 +507,7 @@ export class ParticleWordmarkEngine {
     private collectSources(containerRect: { left: number; top: number }): CapturedSources {
         const ops: DrawOp[] = []
         const hiddenElements: HTMLElement[] = []
+        let pending = 0
 
         {
             const logoContainer = this.container.querySelector<HTMLElement>('.home-tab-logo')
@@ -469,6 +526,8 @@ export class ParticleWordmarkEngine {
                             ops.push({ kind: 'image', element: img, offsetX, offsetY, width: rect.width, height: rect.height })
                         }
                         hiddenElements.push(logoContainer)
+                    } else {
+                        pending++
                     }
                 }
             }
@@ -481,11 +540,13 @@ export class ParticleWordmarkEngine {
                 if (rect.width > 0 && rect.height > 0) {
                     ops.push({ kind: 'text', element: heading, offsetX: rect.left - containerRect.left, offsetY: rect.top - containerRect.top })
                     hiddenElements.push(heading)
+                } else {
+                    pending++
                 }
             }
         }
 
-        return { ops, hiddenElements }
+        return { ops, hiddenElements, pending }
     }
 
     private async applyDrawOp(context: CanvasRenderingContext2D, op: DrawOp): Promise<void> {
@@ -580,16 +641,29 @@ export class ParticleWordmarkEngine {
 
     private collectParticles(data: Uint8ClampedArray, width: number, height: number, step: number, mono: RGB | null): Particle[] {
         const particles: Particle[] = []
-        for (let y = Math.floor(step / 2); y < height; y += step) {
-            for (let x = Math.floor(step / 2); x < width; x += step) {
+        // Content box in device pixels (the raster pads it by rasterPad on
+        // every side); samples on or beyond its inset border are dropped —
+        // that is where clipped ink and glyph fringes would smear into a
+        // line of dots along the canvas edge.
+        const inset = RASTER_CONTENT_INSET * this.scale
+        const minX = this.rasterPad * this.scale + inset
+        const maxX = width - this.rasterPad * this.scale - inset
+        const minY = minX
+        const maxY = height - this.rasterPad * this.scale - inset
+        for (let y = Math.max(1, Math.floor(step / 2)); y < height - 1; y += step) {
+            if (y < minY || y > maxY) continue
+            for (let x = Math.max(1, Math.floor(step / 2)); x < width - 1; x += step) {
+                if (x < minX || x > maxX) continue
                 // Spacing × devicePixelRatio can be fractional. Keep the lattice
                 // positions, but sample whole pixels so RGBA channels stay aligned.
                 const index = (Math.floor(y) * width + Math.floor(x)) * 4
                 if (data[index + 3] <= MIN_ALPHA) continue
                 // Content coords -> canvas-local coords: the rasterized content
                 // is drawn centered on the zoomed canvas, so positions scale by zoom.
-                const hx = (x / this.scale) * this.zoom
-                const hy = (y / this.scale) * this.zoom
+                // The raster pad is translated headroom, not content: subtract it
+                // before mapping into canvas space.
+                const hx = (x / this.scale - this.rasterPad) * this.zoom
+                const hy = (y / this.scale - this.rasterPad) * this.zoom
                 let fill: string
                 if (mono) {
                     // Single hue, but keep the source's light/dark variation:
@@ -716,6 +790,8 @@ export class ParticleWordmarkEngine {
             this.canvas = null
             this.renderContext = null
         }
+        const leftover = this.container.querySelectorAll(':scope > canvas').length
+        if (leftover > 0) console.warn(`[home-tab] particle: teardown left ${leftover} particle canvas(es) in the container — they belong to another engine instance.`)
         this.glowChain = []
         this.glowChainWidth = 0
         this.glowChainHeight = 0

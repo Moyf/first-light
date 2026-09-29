@@ -34,13 +34,14 @@ const zhCN: BaseMessage = {
 		openInNewWindow: '在新窗口打开',
 	},
 	group: {
-		search: '搜索框',
+		searchAndNewNote: '搜索与新建',
 		files: '显示内容',
 		appearance: '外观',
 		developer: '开发者',
 		headingJump: '标题跳转',
 		results: '结果显示',
 		logoLayout: 'Logo 布局',
+		titleMargin: '标题边距',
 		particleStyle: '样式',
 		particleCanvas: '画布',
 		particleInteraction: '交互',
@@ -246,7 +247,7 @@ const zhCN: BaseMessage = {
 			desc: '搜索内容没有匹配到任何笔记时，高亮新建笔记按钮；此时按回车直接打开新建弹窗，自动填入输入的名称并聚焦文件夹输入框。',
 		},
 		logo: {
-			name: 'Logo',
+			name: '图标',
 			desc: '移除或设置自定义 Logo。支持本地文件、图片链接或 Lucide 图标 ID。',
 			placeholder: '输入任意内容 ... ',
 			invalidTooltip: '路径/链接/图标无效。',
@@ -303,6 +304,30 @@ const zhCN: BaseMessage = {
 		logoScale: {
 			name: 'Logo 缩放',
 			desc: '设置 Logo 相对于标题字号的尺寸。',
+		},
+		titleMargin: {
+			name: '标题边距',
+			desc: '设置标题四周留出的间距（像素）。',
+		},
+		titleMarginIndividual: {
+			name: '单独调整各方向边距',
+			desc: '分别为标题的四个方向设置边距。',
+		},
+		titleMarginTop: {
+			name: '上边距',
+			desc: '标题上方留出的间距（像素）。',
+		},
+		titleMarginRight: {
+			name: '右边距',
+			desc: '标题右侧留出的间距（像素）。',
+		},
+		titleMarginBottom: {
+			name: '下边距',
+			desc: '标题下方留出的间距（像素）。',
+		},
+		titleMarginLeft: {
+			name: '左边距',
+			desc: '标题左侧留出的间距（像素）。',
 		},
 		title: {
 			name: '标题',
