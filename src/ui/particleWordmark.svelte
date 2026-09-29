@@ -35,7 +35,6 @@
     }
 
     function destroyEngine(): void {
-        console.log('[home-tab] particle: destroying engine')
         buildAttempt++
         clearBuildRetry()
         loading = false
@@ -100,12 +99,10 @@
         // A newer rebuild superseded this one (shared `engine` moved on):
         // leave the current engine alone instead of tearing it down.
         if (engine !== next) return
-        console.log(`[home-tab] particle: engine built, tookOver=${tookOver}`)
         if (!tookOver) {
             releaseLayout()
             next.destroy()
             engine = null
-            console.warn(`[home-tab] particle: build fell back (attempt ${attempt}, retry ${buildRetries}/${BUILD_RETRY_LIMIT})`)
             // Keep `loading` (and with it the hidden static wordmark) while
             // retries are pending, so the fallback never flashes between
             // attempts; it is only restored once the retries give up.
@@ -116,7 +113,6 @@
             }
             return
         }
-        console.log(`[home-tab] particle: engine took over after ${buildRetries} retries`)
         loading = false
         buildRetries = 0
     }

@@ -352,15 +352,15 @@ export class ParticleWordmarkEngine {
      * took over, false when it fell back to the normal DOM rendering.
      */
     async build(): Promise<boolean> {
-        if (this.destroyed || !this.container.isConnected) return this.failBuild('container not connected')
+        if (this.destroyed || !this.container.isConnected) return false
         const token = ++this.buildToken
 
         const containerRect = this.resolveContentRect()
-        if (containerRect.width <= 0 || containerRect.height <= 0) return this.failBuild(`content box has zero size (${containerRect.width.toFixed(1)}x${containerRect.height.toFixed(1)})`)
+        if (containerRect.width <= 0 || containerRect.height <= 0) return false
 
         const sources = this.collectSources(containerRect)
-        if (sources.pending > 0) return this.failBuild(`source not measurable yet (pending=${sources.pending})`)
-        if (sources.ops.length === 0) return this.failBuild('no wordmark sources found')
+        if (sources.pending > 0) return false
+        if (sources.ops.length === 0) return false
 
         // Popout windows may sit on a different display: resolve the pixel
         // ratio from the container's own window.
@@ -380,14 +380,14 @@ export class ParticleWordmarkEngine {
         this.rasterPad = pad
 
         for (const op of sources.ops) {
-            if (this.destroyed || token !== this.buildToken) return this.failBuild('raster aborted (destroyed or superseded)')
+            if (this.destroyed || token !== this.buildToken) return false
             try {
                 await this.applyDrawOp(offscreenContext, op)
             } catch (error) {
                 console.warn('[home-tab] Particle effect: a wordmark source could not be rasterized and was skipped.', error)
             }
         }
-        if (this.destroyed || token !== this.buildToken) return this.failBuild('raster aborted (destroyed or superseded)')
+        if (this.destroyed || token !== this.buildToken) return false
 
         this.scale = scale
         this.contentWidth = containerRect.width
@@ -409,19 +409,13 @@ export class ParticleWordmarkEngine {
             // makes getImageData throw: fall back to the normal rendering.
             console.warn('[home-tab] Particle effect: unable to sample the wordmark pixels (a remote logo image can block canvas reads); falling back to the normal rendering.', error)
             this.destroy()
-            return this.failBuild('canvas read blocked (tainted)')
+            return false
         }
 
-        if (this.particles.length === 0) return this.failBuild('no particles sampled (blank raster)')
+        if (this.particles.length === 0) return false
 
         this.activate(sources)
         return true
-    }
-
-    /** Logs why a build fell back and resolves to false. */
-    private failBuild(reason: string): false {
-        console.warn(`[home-tab] particle: build failed: ${reason}`)
-        return false
     }
 
     /** Fully cleans up: cancels the animation, removes listeners/observers and the canvas, restores the original elements. */
@@ -790,8 +784,6 @@ export class ParticleWordmarkEngine {
             this.canvas = null
             this.renderContext = null
         }
-        const leftover = this.container.querySelectorAll(':scope > canvas').length
-        if (leftover > 0) console.warn(`[home-tab] particle: teardown left ${leftover} particle canvas(es) in the container — they belong to another engine instance.`)
         this.glowChain = []
         this.glowChainWidth = 0
         this.glowChainHeight = 0

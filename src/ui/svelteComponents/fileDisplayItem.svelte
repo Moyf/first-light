@@ -20,11 +20,13 @@
     export let showMenuButton: boolean = true
     // Marks not-yet-created notes with a small plus badge
     export let pending: boolean = false
+    // Text-only item (e.g. periodic notes): renders no file type / custom icon
+    export let showIcon: boolean = true
 
     // Trim filename if too long
     // const filename = file.basename.length > 38 ? file.basename.slice(0,35) + '...' : file.basename
-    const filename = displayName ?? file?.basename ?? ''
-    const fileType = file ? getFileTypeFromExtension(file.extension) : 'markdown'
+    $: filename = displayName ?? file?.basename ?? ''
+    $: fileType = file ? getFileTypeFromExtension(file.extension) : 'markdown'
 
     const dispatch = createEventDispatcher<{itemMenu:{file: TFile}}>()
 
@@ -60,11 +62,12 @@
     </div>
     {/if}
 
+    {#if showIcon}
     <div class="home-tab-file-item-preview-icon">
         {#if customIcon}
-            <svg xmlns="http://www.w3.org/2000/svg"  width="24" height="24" 
+            <svg xmlns="http://www.w3.org/2000/svg"  width="24" height="24"
                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="1" stroke-linecap="round" stroke-linejoin="round" 
+                        stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
                         class="lucide-icon lucide lucide-{customIcon}">
                             {@html getIcon(customIcon)?.innerHTML}
             </svg>
@@ -90,6 +93,7 @@
             {/if}
         {/if}
     </div>
+    {/if}
     <div class="home-tab-file-item-name">
         {filename}
     </div>

@@ -51,6 +51,7 @@
 
 .home-tab-suggestion-file-tag{
     min-width: fit-content;
+    margin-right: var(--size-2-2);
 }
 .suggestion.use-accent-color .is-selected .home-tab-suggestion-title.is-unresolved{
     color: var(--text-on-accent);

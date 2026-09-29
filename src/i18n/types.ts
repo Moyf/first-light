@@ -104,6 +104,9 @@ export interface BaseMessage {
 		newNoteDefaultFolder: SettingEntry & { placeholder: string }
 		showPeriodicNotes: SettingEntry
 		periodicNotesMode: SettingEntry & { options: DropdownOptions }
+		periodicNotesDecoration: SettingEntry & { options: DropdownOptions }
+		periodicNotesDecorationLeft: SettingEntry
+		periodicNotesDecorationRight: SettingEntry
 		periodicNotesUnavailable: SettingEntry
 		periodicNotesShowDaily: SettingEntry
 		periodicNotesShowWeekly: SettingEntry
@@ -149,7 +152,7 @@ export interface BaseMessage {
 			options: DropdownOptions
 		}
 		customFontName: SettingEntry
-		fontSize: SettingEntry & { invalid: string }
+		fontSize: SettingEntry
 		fontWeight: SettingEntry
 		titleColor: SettingEntry
 		selectionHighlight: SettingEntry

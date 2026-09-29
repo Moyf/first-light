@@ -26,6 +26,19 @@
         }
     }
 
+    // Rebuild labels when the settings store updates, without reopening the tab.
+    $: if (pluginSettings) refreshEntries()
+    $: decorationLeft = pluginSettings?.periodicNotesDecorationMode === 'custom'
+        ? (pluginSettings.periodicNotesDecorationLeft ?? '{')
+        : pluginSettings?.periodicNotesDecorationMode === 'angleBrackets' ? '<'
+        : pluginSettings?.periodicNotesDecorationMode === 'braces' ? '{'
+        : ''
+    $: decorationRight = pluginSettings?.periodicNotesDecorationMode === 'custom'
+        ? (pluginSettings.periodicNotesDecorationRight ?? '}')
+        : pluginSettings?.periodicNotesDecorationMode === 'angleBrackets' ? '>'
+        : pluginSettings?.periodicNotesDecorationMode === 'braces' ? '}'
+        : ''
+
     // Follow day/week/month rollovers while the tab stays open
     const rolloverInterval = window.setInterval(refreshEntries, 60_000)
     onDestroy(() => window.clearInterval(rolloverInterval))
@@ -162,6 +175,7 @@
 
 {#if entries.length > 0}
     <div class="home-tab-periodic-notes-container">
+        <span class="home-tab-periodic-notes-decoration" aria-hidden="true">{decorationLeft}</span>
         <div class="home-tab-periodic-notes-wrapper"
             bind:this={listWrapperEl}
             tabindex="-1"
@@ -172,26 +186,40 @@
                 <!-- svelte-ignore a11y-no-static-element-interactions (right-click opens the item menu) -->
                 <div class="home-tab-periodic-note-wrapper"
                     on:contextmenu|preventDefault={(event) => showEntryMenu(event, entry)}>
-                    <FileDisplayItem file={entry.file} displayName={entry.label} customIcon={entry.icon}
+                    <FileDisplayItem file={entry.file} displayName={entry.label}
                         {app} {pluginSettings} contextualMenu={new Menu()}
                         customOpen={(newTab) => openEntry(entry, newTab)}
                         showMenuButton={false}
+                        showIcon={false}
                         pending={!entry.exists}
                         selected={index === selectedIndex}/>
                 </div>
             {/each}
         </div>
+        <span class="home-tab-periodic-notes-decoration" aria-hidden="true">{decorationRight}</span>
     </div>
 {/if}
 
 <style>
     .home-tab-periodic-notes-container{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--size-4-2);
         width: 65%;
         max-width: 900px;
         padding-top: 30px;
         margin: auto;
     }
+    .home-tab-periodic-notes-decoration{
+        flex: 0 0 auto;
+        white-space: pre;
+    }
     .home-tab-periodic-notes-wrapper{
+        flex: 0 1 auto;
+        width: max-content;
+        max-width: 100%;
+        min-width: 0;
         display: flex;
         align-items: baseline;
         justify-content: center;
@@ -205,14 +233,6 @@
     @media(max-width: 600px){
         .home-tab-periodic-notes-container{
             width: 90%;
-        }
-        .home-tab-periodic-notes-wrapper{
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2px;
-        }
-        .home-tab-periodic-note-wrapper{
-            display: block;
         }
     }
 </style>

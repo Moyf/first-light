@@ -190,6 +190,24 @@ const zhCN: BaseMessage = {
 			name: '显示周期笔记',
 			desc: '在搜索栏下方显示当前的日记/周记/月记/年记，尚未创建的笔记会在打开时自动创建。',
 		},
+		periodicNotesDecoration: {
+			name: '周期笔记整体装饰',
+			desc: '在整个周期笔记区域两侧各显示一次装饰；区域换行时，装饰保持垂直居中。',
+			options: {
+				none: '无',
+				braces: '{ }',
+				angleBrackets: '< >',
+				custom: '自定义',
+			},
+		},
+		periodicNotesDecorationLeft: {
+			name: '左侧装饰',
+			desc: '显示在整个周期笔记区域左侧的文本。',
+		},
+		periodicNotesDecorationRight: {
+			name: '右侧装饰',
+			desc: '显示在整个周期笔记区域右侧的文本。',
+		},
 		periodicNotesMode: {
 			name: '来源',
 			desc: '从 Daily Notes / Periodic Notes 插件读取路径规则，或自定义规则。',
@@ -345,11 +363,11 @@ const zhCN: BaseMessage = {
 		},
 		customFontName: {
 			name: '字体名称',
+			desc: '桌面端输入时可搜索系统已安装的字体，也可以直接填写字体名称。',
 		},
 		fontSize: {
 			name: '标题字号',
-			desc: '接受任意 CSS font-size 值。',
-			invalid: 'CSS 单位无效。',
+			desc: '标题大小范围为 2em 到 8em，步进 0.5em。',
 		},
 		fontWeight: {
 			name: '标题字重',

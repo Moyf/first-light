@@ -190,6 +190,24 @@ const en: BaseMessage = {
 			name: 'Show periodic notes',
 			desc: 'Displays the current daily/weekly/monthly/yearly notes under the search bar. Notes that do not exist yet are created when opened.',
 		},
+		periodicNotesDecoration: {
+			name: 'Periodic notes decoration',
+			desc: 'Place one decoration on each side of the entire periodic-notes group. Both stay vertically centered if the group wraps.',
+			options: {
+				none: 'None',
+				braces: '{ }',
+				angleBrackets: '< >',
+				custom: 'Custom',
+			},
+		},
+		periodicNotesDecorationLeft: {
+			name: 'Left decoration',
+			desc: 'Text shown to the left of the entire periodic-notes group.',
+		},
+		periodicNotesDecorationRight: {
+			name: 'Right decoration',
+			desc: 'Text shown to the right of the entire periodic-notes group.',
+		},
 		periodicNotesMode: {
 			name: 'Source',
 			desc: 'Read the folder and format from the Daily notes / Periodic Notes plugins, or define custom rules.',
@@ -345,11 +363,11 @@ const en: BaseMessage = {
 		},
 		customFontName: {
 			name: 'Font name',
+			desc: 'Type to search installed desktop fonts, or enter a font name directly.',
 		},
 		fontSize: {
 			name: 'Title font size',
-			desc: 'Accepts any CSS font-size value.',
-			invalid: 'The CSS unit is not valid.',
+			desc: 'Set the title size from 2em to 8em in 0.5em steps.',
 		},
 		fontWeight: {
 			name: 'Title font weight',

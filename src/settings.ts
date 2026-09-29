@@ -5,7 +5,6 @@ import iconSuggester from './suggester/iconSuggester'
 import ImageFileSuggester from './suggester/imageSuggester'
 import CommandSuggester from './suggester/commandSuggester'
 import NewNoteFolderSuggester from './suggester/newNoteFolderSuggester'
-import cssUnitValidator from './utils/cssUnitValidator'
 import isLink from './utils/isLink'
 import fontSuggester from './suggester/fontSuggester'
 import type { recentFileStore } from './recentFiles'
@@ -92,6 +91,9 @@ export interface HomeTabSettings extends ObjectKeys{
     storeRecentFile: boolean
     showPeriodicNotes: boolean // 新增：是否在主页显示周期笔记
     periodicNotesMode: 'auto' | 'custom' // 新增：周期笔记来源，自动读取插件配置或自定义规则
+    periodicNotesDecorationMode: 'none' | 'braces' | 'angleBrackets' | 'custom'
+    periodicNotesDecorationLeft: string
+    periodicNotesDecorationRight: string
     periodicNotesShowDaily: boolean // 新增：显示日记
     periodicNotesShowWeekly: boolean // 新增：显示周记
     periodicNotesShowMonthly: boolean // 新增：显示月记
@@ -160,13 +162,12 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     fontSize: '4em',
     fontColorType: 'default',
     fontWeight: 600,
-    // 0 keeps the historical (margin-free) title layout intact for existing users
-    titleMargin: 0,
+    titleMargin: 20,
     titleMarginIndividual: false,
-    titleMarginTop: 0,
-    titleMarginRight: 0,
-    titleMarginBottom: 0,
-    titleMarginLeft: 0,
+    titleMarginTop: 20,
+    titleMarginRight: 20,
+    titleMarginBottom: 20,
+    titleMarginLeft: 20,
     particleEffect: false,
     particleEffectColorMode: 'original',
     particleEffectColor: '#6C31E3',
@@ -201,6 +202,9 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     storeRecentFile: true,
     showPeriodicNotes: false, // 新增：默认关闭周期笔记
     periodicNotesMode: 'auto', // 新增：默认跟随插件配置
+    periodicNotesDecorationMode: 'braces',
+    periodicNotesDecorationLeft: '{',
+    periodicNotesDecorationRight: '}',
     periodicNotesShowDaily: true, // 新增：默认只显示日记（单个就日记）
     periodicNotesShowWeekly: false, // 新增：周记默认关闭，可按需开启
     periodicNotesShowMonthly: false, // 新增：月记默认关闭，可按需开启
@@ -297,6 +301,22 @@ export function effectiveParticleEffectColors(settings: HomeTabSettings): { colo
         color: pick(settings.particleEffectColor, DEFAULT_SETTINGS.particleEffectColor),
         color2: pick(settings.particleEffectColor2, DEFAULT_SETTINGS.particleEffectColor2),
     }
+}
+
+function fontSizeEmValue(fontSize: string): number {
+    const match = fontSize.trim().match(/^(\d+(?:\.\d+)?)em$/i)
+    if (!match) return 4
+    return Math.max(2, Math.min(8, Math.round(Number(match[1]) * 2) / 2))
+}
+
+function setDescriptionWithPreview(setting: Setting, hint: string, preview?: string): void {
+    const description = document.createDocumentFragment()
+    description.append(document.createTextNode(hint))
+    if (preview) {
+        description.append(document.createElement('br'))
+        description.append(document.createTextNode(preview))
+    }
+    setting.setDesc(description)
 }
 
 export class HomeTabSettingTab extends PluginSettingTab {
@@ -621,6 +641,22 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 desc: t.setting.showPeriodicNotes.desc,
                                 control: { type: 'toggle', key: 'showPeriodicNotes' },
                             },
+                            this.dropdownWithReset('periodicNotesDecorationMode', t.setting.periodicNotesDecoration.name, t.setting.periodicNotesDecoration.desc, t.setting.periodicNotesDecoration.options, {
+                                visible: () => s.showPeriodicNotes,
+                                refreshDomAfterChange: true,
+                            }),
+                            {
+                                name: t.setting.periodicNotesDecorationLeft.name,
+                                desc: t.setting.periodicNotesDecorationLeft.desc,
+                                visible: () => s.showPeriodicNotes && s.periodicNotesDecorationMode === 'custom',
+                                control: { type: 'text', key: 'periodicNotesDecorationLeft' },
+                            },
+                            {
+                                name: t.setting.periodicNotesDecorationRight.name,
+                                desc: t.setting.periodicNotesDecorationRight.desc,
+                                visible: () => s.showPeriodicNotes && s.periodicNotesDecorationMode === 'custom',
+                                control: { type: 'text', key: 'periodicNotesDecorationRight' },
+                            },
                             this.dropdownWithReset('periodicNotesMode', t.setting.periodicNotesMode.name, t.setting.periodicNotesMode.desc, t.setting.periodicNotesMode.options, {
                                 visible: () => s.showPeriodicNotes,
                                 refreshDomAfterChange: true, // toggle the auto/custom sections in place
@@ -792,6 +828,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                             this.dropdownWithReset('customFont', t.setting.titleFont.name, t.setting.titleFont.desc, t.setting.titleFont.options, { rebuildAfterChange: true }),
                             {
                                 name: t.setting.customFontName.name,
+                                desc: t.setting.customFontName.desc,
                                 visible: () => s.customFont === 'custom',
                                 render: (setting) => this.renderCustomFontName(setting, t),
                             },
@@ -799,27 +836,20 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 name: t.setting.fontSize.name,
                                 desc: t.setting.fontSize.desc,
                                 render: (setting) => {
-                                    let invalidFontSizeIcon: HTMLElement
-                                    setting
-                                        .addExtraButton((button) => {button
-                                            .setIcon('alert-circle')
-                                            .setTooltip(t.setting.fontSize.invalid)
-                                            invalidFontSizeIcon = button.extraSettingsEl
-                                            invalidFontSizeIcon.addClass('mod-warning')
-                                            invalidFontSizeIcon.toggleVisibility(false)
-                                        })
-                                        .addText((text) => text
-                                            .setValue(s.fontSize)
-                                            .onChange((value) => {
-                                                if(cssUnitValidator(value)){
-                                                    s.fontSize = value
-                                                    void this.plugin.saveSettings()
-                                                    invalidFontSizeIcon.toggleVisibility(false)
-                                                }
-                                                else{
-                                                    invalidFontSizeIcon.toggleVisibility(true)
-                                                }
-                                            }))
+                                    const initialSize = fontSizeEmValue(s.fontSize)
+                                    const normalizedSize = `${initialSize}em`
+                                    if (s.fontSize !== normalizedSize) {
+                                        s.fontSize = normalizedSize
+                                        void this.plugin.saveSettings()
+                                    }
+                                    setting.addSlider((slider) => slider
+                                        .setLimits(2, 8, 0.5)
+                                        .setValue(initialSize)
+                                        .setDisplayFormat((value) => `${value}em`)
+                                        .onChange((value) => {
+                                            s.fontSize = `${value}em`
+                                            void this.plugin.saveSettings()
+                                        }))
                                     this.addResetButton(setting, 'fontSize')
                                 },
                             },
@@ -1106,7 +1136,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
             })
     }
 
-    /** Custom font name input with the font suggester (desktop, non-macOS only) */
+    /** Custom font name input with desktop system font suggestions */
     private renderCustomFontName(setting: Setting, t: ReturnType<typeof getLocale>): void {
         const s = this.plugin.settings
         let invalidFontIcon: HTMLElement
@@ -1121,11 +1151,15 @@ export class HomeTabSettingTab extends PluginSettingTab {
         setting.addSearch((text) => {
             text.setValue(s.font ? s.font.replace(/"/g, ''): '')
             text.setPlaceholder(t.setting.logo.placeholder)
-            const suggester: fontSuggester | undefined = Platform.isMobile || Platform.isMacOS ? undefined : new fontSuggester(this.app, text.inputEl, true)
+            const suggester: fontSuggester | undefined = Platform.isMobile ? undefined : new fontSuggester(this.app, text.inputEl, true)
 
             text.onChange(async (value) => {
-                value = value.indexOf(' ') >= 0 ? `"${value}"` : value //Restore "" if font name contains whitespaces
-                if((suggester && (await suggester.getInstalledFonts()).includes(value)) || checkFont(value) ){
+                const fontName = value.replace(/"/g, '').trim()
+                value = fontName.indexOf(' ') >= 0 ? `"${fontName}"` : fontName // Restore quotes for CSS font-family names with spaces
+                const installedFonts = suggester ? await suggester.getInstalledFonts() : []
+                const isInstalledFont = installedFonts.some(font => font.toLocaleLowerCase() === fontName.toLocaleLowerCase())
+
+                if(isInstalledFont || checkFont(value) ){
                     s.font = value
                     void this.plugin.saveSettings()
                     invalidFontIcon.toggleVisibility(false)
@@ -1216,7 +1250,8 @@ export class HomeTabSettingTab extends PluginSettingTab {
                     // Live preview: render the {{token}} placeholders as they type
                     const updatePreview = (): void => {
                         const value = (s[customKey] as string ?? '').trim()
-                        setting.setDesc(value ? `${t.setting.periodicNotesLabelPreview}: ${formatPeriodicLabel(value)}` : t.setting.periodicNotesLabelCustom.desc ?? '')
+                        const preview = value ? `${t.setting.periodicNotesLabelPreview}: ${formatPeriodicLabel(value)}` : undefined
+                        setDescriptionWithPreview(setting, t.setting.periodicNotesLabelCustom.desc ?? '', preview)
                     }
                     updatePreview()
                     setting.addText((text) => text
@@ -1244,7 +1279,8 @@ export class HomeTabSettingTab extends PluginSettingTab {
         // Live preview of the {{token}} placeholders in the display label
         const updateLabelPreview = (): void => {
             const value = entry.label.trim()
-            setting.setDesc(value ? `${t.setting.periodicNotesLabelPreview}: ${formatPeriodicLabel(value)}` : t.setting.periodicNotesCustomEntries.desc ?? '')
+            const preview = value ? `${t.setting.periodicNotesLabelPreview}: ${formatPeriodicLabel(value)}` : undefined
+            setDescriptionWithPreview(setting, t.setting.periodicNotesCustomEntries.desc ?? '', preview)
         }
         updateLabelPreview()
         setting

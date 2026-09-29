@@ -8,59 +8,66 @@ import { ArrayFuzzySearch } from "./fuzzySearch"
  */
 export default class fontSuggester extends AbstractInputSuggest<Fuse.FuseResult<string>>{
     private inputEl: HTMLInputElement
-    private fontList: string[]
-    private fuzzySearch: ArrayFuzzySearch
-    private renderFont: boolean | undefined
+    private fontList: string[] = []
+    private fontListPromise: Promise<string[]> | undefined
+    private fuzzySearch: ArrayFuzzySearch | undefined
+    private renderFont: boolean
 
     constructor(app: App, inputEl: HTMLInputElement, renderFont?: boolean){
         super(app, inputEl)
         this.inputEl = inputEl
-        this.renderFont = renderFont
-
-        void this.getInstalledFonts().then(fontList => {
-            this.fontList = fontList
-            this.fuzzySearch = new ArrayFuzzySearch(fontList)
-        })
+        this.renderFont = renderFont ?? false
     }
 
-    async getInstalledFonts(): Promise<string[]>{
-        if(!this.fontList){
-            try {
-                const fontList = await import('font-list');
-                this.fontList = await fontList.getFonts();
-            } catch(e) {
-                console.warn('Failed to get system fonts', e);
-                this.fontList = [];
-            }
+    getInstalledFonts(): Promise<string[]>{
+        if (!this.fontListPromise) {
+            this.fontListPromise = (async () => {
+                try {
+                    const fontList = await import('font-list')
+                    const fonts = (await fontList.getFonts({ disableQuoting: true }))
+                        .map(font => font.replace(/"/g, '').trim())
+                        .filter(Boolean)
+
+                    this.fontList = fonts
+                    this.fuzzySearch = new ArrayFuzzySearch(fonts)
+                } catch(e) {
+                    console.warn('Failed to get system fonts', e)
+                    this.fontList = []
+                    this.fuzzySearch = new ArrayFuzzySearch([])
+                }
+
+                return this.fontList
+            })()
         }
-        return this.fontList
+
+        return this.fontListPromise
     }
 
-    getSuggestions(query: string): Fuse.FuseResult<string>[] {
-        // The font list may still be loading
-        if (!this.fuzzySearch) return []
+    async getSuggestions(query: string): Promise<Fuse.FuseResult<string>[]> {
+        const fontList = await this.getInstalledFonts()
+
         // If the input is blank display all installed fonts
         if (!query){
-            return this.fontList.map(font => ({
+            return fontList.map((font, refIndex) => ({
                 item: font,
-                refIndex: 0,
+                refIndex,
                 score: 0,
             }))
         }
-        return this.fuzzySearch.filteredSearch(query, 0.25, 15)
+
+        return this.fuzzySearch?.filteredSearch(query, 0.25, 15) ?? []
     }
 
     renderSuggestion(suggestion: Fuse.FuseResult<string>, el: HTMLElement): void {
         el.addClass('suggestion-item')
-        const fontName = suggestion.item.replace(/"/g, ``)
         if (this.renderFont) {
             el.style.fontFamily = suggestion.item
         }
-        el.setText(fontName)
+        el.setText(suggestion.item)
     }
 
     selectSuggestion(suggestion: Fuse.FuseResult<string>): void {
-        this.inputEl.value = suggestion.item.replace(/"/g, ``)
+        this.inputEl.value = suggestion.item
         this.inputEl.trigger("input")
         this.close()
     }
