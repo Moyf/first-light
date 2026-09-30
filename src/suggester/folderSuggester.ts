@@ -48,9 +48,8 @@ export default class FolderSuggester extends TextInputSuggester<TFolder>{
 
     useSelectedItem(folder: TFolder): void {
         revealFolderInExplorer(this.app, folder, t().ui.folderRevealFailed)
-        // 选择完成后清空过滤、回到默认文件建议器，体验与文件搜索一致
-        this.searchBar.updateActiveSuggester('default')
-        this.searchBar.focusSearchbar()
+        // Preserve the folder pick as a temporary scope in the normal note search.
+        this.searchBar.setFolderSearchScope(folder.path)
     }
 
     getDisplayElementComponentType(): typeof FolderSuggestion {

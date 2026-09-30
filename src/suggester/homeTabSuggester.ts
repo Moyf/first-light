@@ -10,6 +10,7 @@ import { isValidExtension, MEDIA_FILE_TYPES, type FileExtension, type FileType }
 import { get } from 'svelte/store'
 import HomeTabFileSuggestion from 'src/ui/svelteComponents/homeTabFileSuggestion.svelte'
 import { MatchAnalyzer } from 'src/utils/matchAnalyzer'
+import { isFileInFolderPath, parseFolderSearchQuery } from 'src/utils/folderSearchQuery'
 
 declare module 'obsidian'{
     interface MetadataCache{
@@ -25,8 +26,10 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
     private plugin: HomeTab
     private searchBar: HomeTabSearchBar
 
-    private activeFilter: FileType | FileExtension  | null
+    private activeFilter: FileType | FileExtension | null = null
     private matchAnalyzer: MatchAnalyzer
+    private folderSearchIndex: FileFuzzySearch | undefined
+    private folderSearchIndexKey: string | undefined
 
     constructor(app: App, plugin: HomeTab, view: View, searchBar: HomeTabSearchBar) {
         super(app, get(searchBar.searchBarEl), get(searchBar.suggestionContainerEl), {
@@ -64,19 +67,9 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
                 this.files = getSearchFiles(this.app, this.plugin.settings.unresolvedLinks);
             }
             
-            this.fuzzySearch = new FileFuzzySearch(this.files, { 
-                ...DEFAULT_FUSE_OPTIONS, 
-                ignoreLocation: true, 
-                // 完全禁用字段标准化权重，让单一最佳匹配主导
-                fieldNormWeight: 0.5,  // 完全消除多字段匹配的累积效应
-                // 超极化权重：basename 绝对优先
-                keys: [
-                    {name: 'basename', weight: 10.0},  // 文件名绝对权重
-                    {name: 'aliases', weight: 8.0},    // 别名高权重  
-                    ...(this.plugin.settings.searchTitle ? [{name: 'title', weight: 2.5}] : []),   // 标题中等权重
-                    ...(this.plugin.settings.searchHeadings ? [{name: 'headings', weight: 1.0}] : [])  // 标题内容极低权重
-                ] 
-            })
+            this.fuzzySearch = this.createFuzzySearch(this.files)
+            this.folderSearchIndex = undefined
+            this.folderSearchIndexKey = undefined
         })
 
         // Open file in new tab
@@ -99,6 +92,48 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
         this.view.registerEvent(this.app.vault.on('delete', (file: TAbstractFile) => { if(file instanceof TFile){this.updateSearchfilesList(file)}}))
         this.view.registerEvent(this.app.vault.on('rename', (file: TAbstractFile, oldPath: string) => { if(file instanceof TFile){this.updateSearchfilesList(file, oldPath)}}))
         this.view.registerEvent(this.app.metadataCache.on('resolved', () => this.updateUnresolvedFiles()))
+    }
+
+    private createFuzzySearch(files: SearchFile[]): FileFuzzySearch {
+        return new FileFuzzySearch(files, {
+                ...DEFAULT_FUSE_OPTIONS,
+                ignoreLocation: true,
+                // 完全禁用字段标准化权重，让单一最佳匹配主导
+                fieldNormWeight: 0.5,  // 完全消除多字段匹配的累积效应
+                // 超极化权重：basename 绝对优先
+                keys: [
+                    {name: 'basename', weight: 10.0},  // 文件名绝对权重
+                    {name: 'aliases', weight: 8.0},    // 别名高权重
+                    ...(this.plugin.settings.searchTitle ? [{name: 'title', weight: 2.5}] : []),   // 标题中等权重
+                    ...(this.plugin.settings.searchHeadings ? [{name: 'headings', weight: 1.0}] : [])  // 标题内容极低权重
+                ]
+            })
+    }
+
+    private getFilesForCurrentFilter(): SearchFile[] {
+        const files = this.files ?? []
+        if (!this.activeFilter) return files
+
+        if (this.plugin.settings.markdownOnly && this.plugin.settings.additionalExtensions && this.activeFilter === 'markdown') {
+            return [
+                ...this.filterSearchFileArray(this.activeFilter, files),
+                ...this.getAdditionalExtensionFiles(files),
+            ]
+        }
+
+        return this.filterSearchFileArray(this.activeFilter, files)
+    }
+
+    private getFolderSearchIndex(folderPath: string): FileFuzzySearch {
+        const cacheKey = `${this.activeFilter ?? ''}:${folderPath.toLowerCase()}`
+        if (this.folderSearchIndex && this.folderSearchIndexKey === cacheKey) {
+            return this.folderSearchIndex
+        }
+
+        const files = this.getFilesForCurrentFilter().filter(file => isFileInFolderPath(file.path, folderPath))
+        this.folderSearchIndex = this.createFuzzySearch(files)
+        this.folderSearchIndexKey = cacheKey
+        return this.folderSearchIndex
     }
 
     // 重写 close 方法来检查 hideOnBlur 设置
@@ -160,7 +195,11 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
                     newFiles = true
                 }
             })
-            if(newFiles) this.fuzzySearch.updateSearchArray(this.files)
+            if(newFiles){
+                this.fuzzySearch.updateSearchArray(this.files)
+                this.folderSearchIndex = undefined
+                this.folderSearchIndexKey = undefined
+            }
         }
     }
 
@@ -187,6 +226,8 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
                 }
             }
             this.fuzzySearch.updateSearchArray(this.files)
+            this.folderSearchIndex = undefined
+            this.folderSearchIndexKey = undefined
         })
     }
 
@@ -198,13 +239,25 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
     }
     
     getSuggestions(inputStr: string): Fuse.FuseResult<SearchFile>[] {
-        const query = inputStr.trim();
+        const folderSearch = parseFolderSearchQuery(inputStr)
+        const query = folderSearch?.query ?? inputStr.trim()
 
         // 先尝试搜索文件
-        if(!query) return []
+        if(!query && !folderSearch) return []
         
         // 重置分析器状态
         this.matchAnalyzer.resetForNewSearch();
+
+        if (folderSearch) {
+            if (!query) {
+                return this.getFilesForCurrentFilter()
+                    .filter(file => isFileInFolderPath(file.path, folderSearch.folderPath))
+                    .slice(0, this.plugin.settings.maxResults)
+                    .map((item, refIndex) => ({ item, refIndex, score: 0 }))
+            }
+
+            return this.getFolderSearchIndex(folderSearch.folderPath).rawSearch(query, this.plugin.settings.maxResults)
+        }
         
         const results = this.fuzzySearch.rawSearch(query, this.plugin.settings.maxResults);
         
@@ -213,7 +266,7 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
 
     useSelectedItem(selectedItem: Fuse.FuseResult<SearchFile>, newTab?: boolean): void {
         // 使用智能匹配分析器分析匹配意图
-        const query = this.inputEl.value.trim();
+        const query = parseFolderSearchQuery(this.inputEl.value)?.query ?? this.inputEl.value.trim()
         const analysis = this.matchAnalyzer.analyzeMatch(selectedItem, query);
         const item = selectedItem.item;
         
@@ -287,10 +340,12 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
                 : getParentFolderFromPath(suggestion.item.path);
         }
 
+        const searchQuery = parseFolderSearchQuery(this.inputEl.value)?.query ?? this.inputEl.value.trim()
+        if (!searchQuery) return { nameToDisplay, filePath }
+
         // 使用智能匹配分析器分析匹配意图
         if (suggestion.matches) {
-            const query = this.inputEl.value.trim();
-            const analysis = this.matchAnalyzer.analyzeMatch(suggestion, query);
+            const analysis = this.matchAnalyzer.analyzeMatch(suggestion, searchQuery);
             
             // 根据分析结果设置显示信息
             if (analysis.displayInfo.showHeading && analysis.matchedHeading) {
@@ -303,7 +358,7 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
                 matchedTitle = analysis.displayInfo.matchedTitle;
                 nameToDisplay = analysis.displayInfo.matchedTitle;
             } else {
-                nameToDisplay = this.fuzzySearch.getBestMatch(suggestion, this.inputEl.value);
+                nameToDisplay = this.fuzzySearch.getBestMatch(suggestion, searchQuery);
             }
             
             const result = {
@@ -317,7 +372,7 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
             return result;
         }
 
-        nameToDisplay = this.fuzzySearch.getBestMatch(suggestion, this.inputEl.value);
+        nameToDisplay = this.fuzzySearch.getBestMatch(suggestion, searchQuery);
         
         return {
             nameToDisplay: nameToDisplay,
@@ -343,7 +398,25 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
             newFile = await this.app.vault.create(selectedFile.path, '')
         }
         else{
-            const input = this.inputEl.value;
+            const folderSearch = parseFolderSearchQuery(this.inputEl.value)
+            const input = folderSearch?.query ?? this.inputEl.value.trim()
+            if (!input) return
+
+            if (folderSearch) {
+                const targetPath = normalizePath(`${folderSearch.folderPath}/${input}.md`)
+                const existingFile = this.app.vault.getAbstractFileByPath(targetPath)
+                if (existingFile instanceof TFile) {
+                    this.openFile(existingFile, newTab)
+                    return
+                }
+                if (!await this.app.vault.adapter.exists(folderSearch.folderPath)) {
+                    await this.app.vault.createFolder(folderSearch.folderPath)
+                }
+                newFile = await this.app.vault.create(targetPath, '')
+                this.openFile(newFile, newTab)
+                return
+            }
+
             // If a file with the same filename exists open it
             // Mimics the behaviour of the default quick switcher
             const files = this.files.filter(file => file.fileType === 'markdown')

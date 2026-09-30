@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.8.0] - 2026-09-30
+
+### Features
+
+- **Folder-scoped search**: search within a folder with `folder:path/to/folder query`, or select a folder from the `folder` filter to apply a temporary scope. Quoted paths support spaces, and new notes can be created in the scoped folder.
+- **Filter aliases**: use `f` for folders, `n` for Markdown notes, `m` for media, `w` for web search, `o` for Omnisearch, `b` for Bases, and `c` for Canvas.
+- **Periodic-note decorations**: optionally place braces, angle brackets, or custom text on the two sides of the entire periodic-note group.
+
+### Improvements
+
+- **Title font size**: use a slider from 2em to 8em in 0.5em steps.
+- **Periodic-note previews**: custom display-name previews update live while keeping the original hint visible.
+- **Custom title fonts**: desktop font inputs offer installed-font suggestions and still accept manually entered names.
+- Refine title spacing and periodic-note layout.
+
+<details>
+<summary>中文说明（点击展开）</summary>
+
+### 新增
+
+- **文件夹范围搜索**：使用 `folder:path/to/folder query` 将搜索限定在指定文件夹，也可以从 `folder` 过滤器中选择文件夹来临时限定搜索范围。路径含空格时可加引号；在范围内可以直接创建新笔记。
+- **过滤器别名**：`f` 表示文件夹，`n` 表示 Markdown 笔记，`m` 表示媒体，`w` 表示网页搜索，`o` 表示 Omnisearch，`b` 表示 Bases，`c` 表示 Canvas。
+- **周期笔记装饰**：可选择花括号、尖括号或自定义文本，显示在整个周期笔记区域的两侧。
+
+### 改进
+
+- **标题字号**：使用滑块设置 2em 到 8em 的字号，步进为 0.5em。
+- **周期笔记预览**：自定义显示文本会实时预览，同时保留原有提示内容。
+- **自定义标题字体**：桌面端字体输入框提供已安装字体建议，也支持手动输入字体名。
+- 调整标题间距和周期笔记布局。
+
+</details>
+
 ## [1.7.1] - 2026-09-27
 
 ### Improvements

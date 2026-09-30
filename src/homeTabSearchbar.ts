@@ -10,12 +10,20 @@ import { fileTypes, type FileExtension, type FileType, fileExtensions } from "./
 import { isValidUrl } from "./utils/urlUtils";
 import { NewNoteModal } from "./newNoteModal";
 import { t } from "./i18n";
+import { formatFolderSearchQuery, hasFolderSearchPrefix } from "./utils/folderSearchQuery";
 
 export type SearchBarFilterType = 'fileExtension' | 'fileType' | 'folder' | 'webSearch' | 'omnisearch' | 'default'
 
-const omnisearchKeys = ['omnisearch', 'omni'] as const
-const webSearchKeys = ['surfing', 'web', 'internet'] as const
-const folderKeys = ['folder'] as const
+const omnisearchKeys = ['omnisearch', 'omni', 'o'] as const
+const webSearchKeys = ['surfing', 'web', 'internet', 'w'] as const
+const folderKeys = ['folder', 'f'] as const
+const fileTypeAliasKeys = ['n', 'm', 'b', 'c'] as const
+const fileTypeAliases: Record<typeof fileTypeAliasKeys[number], FileType> = {
+    n: 'markdown',
+    m: 'media',
+    b: 'base',
+    c: 'canvas',
+}
 
 export type OmnisearchFilterKey = typeof omnisearchKeys[number]
 export type WebsearchFilterKey = typeof webSearchKeys[number]
@@ -29,7 +37,7 @@ const filterKeysLookupTable: FilterKeyLookupTable = {
     omnisearch: [...omnisearchKeys],
     webSearch: [...webSearchKeys],
     folder: [...folderKeys],
-    fileType: [...fileTypes],
+    fileType: [...fileTypes, ...fileTypeAliasKeys],
     fileExtension: [...fileExtensions],
 }
 
@@ -96,6 +104,27 @@ export default class HomeTabSearchBar{
             this.createDefaultSuggester();
         }
 
+        const hasFolderPrefix = hasFolderSearchPrefix(query)
+        if (hasFolderPrefix && !(this.fileSuggester instanceof HomeTabFileSuggester)) {
+            this.fileSuggester.close()
+            this.fileSuggester.destroy()
+            this.activeFilter = 'default'
+            get(this.activeExtEl)?.toggleClass('hide', true)
+            this.setSuggester(new HomeTabFileSuggester(this.plugin.app, this.plugin, this.view, this))
+            void this.fileSuggester.onInput()
+            return
+        }
+
+        if (!hasFolderPrefix && this.activeFilter === 'default'
+            && this.fileSuggester instanceof HomeTabFileSuggester
+            && this.plugin.settings.omnisearch && this.plugin.app.plugins.getPlugin('omnisearch')) {
+            this.fileSuggester.close()
+            this.fileSuggester.destroy()
+            this.createDefaultSuggester()
+            void this.fileSuggester.onInput()
+            return
+        }
+
         // 如果是 URL 且不在移动端，切换到 WebViewerSuggester
         if (query && isValidUrl(query) && !Platform.isMobile && this.isWebUrlSuggestionEnabled()) {
             if (!(this.fileSuggester instanceof WebViewerSuggester)) {
@@ -127,7 +156,7 @@ export default class HomeTabSearchBar{
      * keeps unmatchedNameActive in sync (suggester instances are recreated on
      * every filter/suggester switch, so the subscription must follow along).
      */
-    private setSuggester(suggester: HomeTabFileSuggester | OmnisearchSuggester | SurfingSuggester | WebViewerSuggester): void {
+    private setSuggester(suggester: HomeTabFileSuggester | OmnisearchSuggester | SurfingSuggester | WebViewerSuggester | FolderSuggester): void {
         this.suggestionStoreUnsubscribe?.();
         this.suggestionStoreUnsubscribe = undefined;
         this.fileSuggester = suggester;
@@ -140,6 +169,11 @@ export default class HomeTabSearchBar{
         // 销毁旧的 suggester 实例
         if (this.fileSuggester) {
             this.fileSuggester.destroy();
+        }
+
+        if (hasFolderSearchPrefix(get(this.searchBarEl)?.value ?? '')) {
+            this.setSuggester(new HomeTabFileSuggester(this.app, this.plugin, this.view, this))
+            return
         }
 
         if (this.plugin.settings.omnisearch && this.plugin.app.plugins.getPlugin('omnisearch')) {
@@ -196,6 +230,12 @@ export default class HomeTabSearchBar{
             this.fileSuggester.destroy();
         }
 
+        if (hasFolderSearchPrefix(query)) {
+            this.setSuggester(new HomeTabFileSuggester(this.plugin.app, this.plugin, this.view, this))
+            void this.fileSuggester.onInput()
+            return
+        }
+
         // 如果是 URL 且不在移动端，使用 WebViewerSuggester
         if (query && isValidUrl(query) && !Platform.isMobile && this.isWebUrlSuggestionEnabled()) {
             this.setSuggester(new WebViewerSuggester(this.plugin.app, this.plugin, this.view, this));
@@ -215,6 +255,7 @@ export default class HomeTabSearchBar{
         this.fileSuggester.destroy()
         const filterEl = get(this.activeExtEl)
         const query = get(this.searchBarEl)?.value?.trim() || '';
+        const canonicalFilterKey = fileTypeAliases[filterKey as typeof fileTypeAliasKeys[number]] ?? filterKey
 
         // 如果是 URL 且不在移动端，始终使用 WebViewerSuggester
         if (query && isValidUrl(query) && !Platform.isMobile && this.isWebUrlSuggestionEnabled()) {
@@ -239,12 +280,7 @@ export default class HomeTabSearchBar{
         switch(filter){
             case 'default':
                 filterEl.toggleClass('hide', true)
-                if (this.plugin.settings.omnisearch && this.plugin.app.plugins.getPlugin('omnisearch')) {
-                    this.setSuggester(new OmnisearchSuggester(this.plugin.app, this.plugin, this.view, this));
-                }
-                else {
-                    this.setSuggester(new HomeTabFileSuggester(this.plugin.app, this.plugin, this.view, this));
-                }
+                this.createDefaultSuggester()
                 void this.fileSuggester.onInput();
                 break;
             case 'omnisearch':
@@ -273,15 +309,15 @@ export default class HomeTabSearchBar{
             case 'fileType':
                 const fileSuggester = new HomeTabFileSuggester(this.plugin.app, this.plugin, this.view, this)
                 this.setSuggester(fileSuggester)
-                fileSuggester.setFileFilter(filterKey as FileType | FileExtension)
+                fileSuggester.setFileFilter(canonicalFilterKey as FileType | FileExtension)
                 filterEl.toggleClass('hide', false)
-                filterEl.setText(filterKey)
+                filterEl.setText(canonicalFilterKey)
                 void this.fileSuggester.onInput();
                 break;
             case 'folder':
                 filterEl.toggleClass('hide', false)
-                filterEl.setText(filterKey)
-                this.fileSuggester = new FolderSuggester(this.plugin.app, this.plugin, this.view, this)
+                filterEl.setText(canonicalFilterKey)
+                this.setSuggester(new FolderSuggester(this.plugin.app, this.plugin, this.view, this))
                 void this.fileSuggester.onInput();
                 break;
             default:
@@ -295,6 +331,7 @@ export default class HomeTabSearchBar{
      * create dialog with the typed name pre-filled.
      */
     public isUnmatchedNoteName(input: string): boolean {
+        if (hasFolderSearchPrefix(input)) return false
         if(!this.plugin.settings.showNewNoteButton || !this.plugin.settings.newNoteOnUnmatchedName) return false
         if(this.plugin.settings.newNoteUseCommand) return false
         if(this.activeFilter !== 'default') return false
@@ -310,6 +347,23 @@ export default class HomeTabSearchBar{
         if(!this.isUnmatchedNoteName(input)) return false
         new NewNoteModal(this.app, this.plugin, input.trim()).open()
         return true
+    }
+
+    /** Apply a temporary folder scope by writing the searchable prefix into the input. */
+    public setFolderSearchScope(folderPath: string): void {
+        const inputEl = get(this.searchBarEl)
+        if (!inputEl) return
+
+        this.fileSuggester?.destroy()
+        get(this.activeExtEl)?.toggleClass('hide', true)
+        this.activeFilter = 'default'
+        this.setSuggester(new HomeTabFileSuggester(this.plugin.app, this.plugin, this.view, this))
+
+        inputEl.value = formatFolderSearchQuery(folderPath)
+        inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length)
+        const InputEventConstructor = inputEl.ownerDocument.defaultView?.Event ?? Event
+        inputEl.dispatchEvent(new InputEventConstructor('input', { bubbles: true }))
+        this.focusSearchbar()
     }
 
     /** Detaches listeners on view teardown (suggester instances are destroyed by the view) */
