@@ -2,17 +2,17 @@ import { writable } from 'svelte/store'
 import type { HomeTabSettings } from './settings'
 import type { recentFile } from './recentFiles'
 import type { bookmarkedFile } from './bookmarkedFiles'
+import { CONTENT_SECTION_KEYS, buildSectionFocusChain, type ContentSectionKey, type SectionFocusTarget } from './utils/contentSections'
+export type { SectionFocusTarget } from './utils/contentSections'
 
 export const pluginSettingsStore = writable<HomeTabSettings>()
 export const bookmarkedFiles = writable<bookmarkedFile[]>()
 export const recentFiles = writable<recentFile[]>([])
 
-// Tab focus chain: periodic notes -> bookmarks filter -> bookmarks list -> recent filter -> recent list -> back to the search bar.
+// Tab focus follows the displayed section order, then returns to the search bar.
 // Shift+Tab walks the same chain in reverse. Sections that cannot take focus
 // (hidden, collapsed, empty...) forward the request to the next element.
-export type SectionFocusTarget = 'periodic' | 'bookmarks-filter' | 'bookmarks-list' | 'recent-filter' | 'recent-list'
-const FOCUS_CHAIN_FORWARD: SectionFocusTarget[] = ['periodic', 'bookmarks-filter', 'bookmarks-list', 'recent-filter', 'recent-list']
-const FOCUS_CHAIN_BACKWARD: SectionFocusTarget[] = [...FOCUS_CHAIN_FORWARD].reverse()
+let focusChainForward = buildSectionFocusChain(CONTENT_SECTION_KEYS)
 
 export interface SectionFocusRequest {
     target: SectionFocusTarget
@@ -24,8 +24,9 @@ interface FocusChainAvailability { bookmarks: boolean; recent: boolean; periodic
 let chainAvailability: FocusChainAvailability = { bookmarks: true, recent: true, periodic: false }
 
 /** Which sections currently exist in the view; unavailable targets are skipped by the chain */
-export function setFocusChainAvailability(availability: FocusChainAvailability): void {
+export function setFocusChainAvailability(availability: FocusChainAvailability, order: readonly ContentSectionKey[] = CONTENT_SECTION_KEYS): void {
     chainAvailability = availability
+    focusChainForward = buildSectionFocusChain(order)
 }
 
 function isTargetAvailable(target: SectionFocusTarget): boolean {
@@ -34,7 +35,7 @@ function isTargetAvailable(target: SectionFocusTarget): boolean {
 }
 
 let sectionFocusSeq = 0
-export const sectionFocusRequest = writable<SectionFocusRequest>({ target: FOCUS_CHAIN_FORWARD[0], backward: false, seq: 0 })
+export const sectionFocusRequest = writable<SectionFocusRequest>({ target: focusChainForward[0], backward: false, seq: 0 })
 
 // Request the periodic notes list to grab focus on its first item (forward navigation into the section)
 export const periodicFocusRequest = writable(0)
@@ -43,7 +44,7 @@ export const periodicFocusBackRequest = writable(0)
 
 /** Next focusable element in the Tab chain when leaving `from` in the given direction ('search' = the search bar, undefined = nowhere to go) */
 export function nextFocusTarget(from: SectionFocusTarget | 'search', backward: boolean): SectionFocusTarget | 'search' | undefined {
-    const chain = backward ? FOCUS_CHAIN_BACKWARD : FOCUS_CHAIN_FORWARD
+    const chain = backward ? [...focusChainForward].reverse() : focusChainForward
     if (from === 'search') {
         for (const target of chain) {
             if (isTargetAvailable(target)) return target

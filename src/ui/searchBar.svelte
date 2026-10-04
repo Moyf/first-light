@@ -18,6 +18,7 @@
 
     let inputValue = ''
     let inputEl: HTMLInputElement;
+    $: searchBarStyle = $pluginSettingsStore?.searchBarStyle ?? 'modern'
 
     onMount(() => {
         if (inputEl) {
@@ -52,11 +53,11 @@
                 // 过滤词已完成使命（显示在过滤标签上），清空搜索框等待真正的搜索内容
                 inputValue = ''
             }
-            // Shift+Tab (reverse loop): walk the sections chain backwards (recent list first)
+            // Shift+Tab walks the displayed sections backwards.
             else if(e.shiftKey){
                 advanceSectionFocus('search', true, () => HomeTabSearchBar.focusSearchbar())
             }
-            // Tab (forward loop): walk the sections chain forwards (bookmarks filter first)
+            // Tab walks the displayed sections forwards.
             else{
                 advanceSectionFocus('search', false, () => HomeTabSearchBar.focusSearchbar())
             }
@@ -65,9 +66,11 @@
 
 </script>
 
-<div class="home-tab-searchbar-container" bind:this={$container}>
+<div class="home-tab-searchbar-container" data-search-style={searchBarStyle} bind:this={$container}>
     <div class="home-tab-searchbar"
         class:embedded={embedded}
+        class:modern={searchBarStyle === 'modern'}
+        class:transparent={searchBarStyle === 'transparent'}
         style:width={embedded || isPhone ? "90%" : "50%"}>
         <div class='nav-file-tag home-tab-suggestion-file-tag hide' bind:this={$activeExtEl}></div>
         <input type="search" spellcheck="false" placeholder="Type to start search..." bind:value={inputValue} bind:this={inputEl}
@@ -106,6 +109,8 @@
     }
 
     .home-tab-searchbar input{
+        flex: 1;
+        min-width: 0;
         width: 100%;
         height: 100%;
         box-shadow: none;
@@ -114,9 +119,49 @@
         border: none;
         padding-left: 12px;
     }
-    .home-tab-searchbar input:hover{
+    .home-tab-searchbar input:hover,
+    .home-tab-searchbar input:focus{
         background: none;
         border: none;
+        box-shadow: none;
+    }
+
+    .home-tab-searchbar.modern,
+    .home-tab-searchbar.transparent{
+        align-items: center;
+        height: max(64px, calc(var(--input-height) * 1.8));
+        padding: 10px 12px;
+        border-radius: 24px;
+    }
+    .home-tab-searchbar.modern{
+        background-color: color-mix(in srgb, var(--background-modifier-form-field) 72%, transparent);
+        border: 1px solid color-mix(in srgb, var(--text-normal) 16%, transparent);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .home-tab-searchbar.transparent{
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+    .home-tab-searchbar.modern input,
+    .home-tab-searchbar.transparent input{
+        font-size: var(--font-ui-large);
+    }
+    .home-tab-searchbar.modern .home-tab-new-note-button,
+    .home-tab-searchbar.transparent .home-tab-new-note-button{
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+    .home-tab-searchbar.modern .home-tab-new-note-button{
+        border: 1px solid color-mix(in srgb, var(--text-normal) 12%, transparent);
+    }
+    .home-tab-searchbar.modern .home-tab-new-note-button svg,
+    .home-tab-searchbar.transparent .home-tab-new-note-button svg{
+        width: 22px;
+        height: 22px;
     }
 
     .home-tab-suggestion-file-tag.hide{

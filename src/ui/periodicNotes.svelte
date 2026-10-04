@@ -45,7 +45,7 @@
 
     // Expand and focus the first item when requested from the search bar (Tab navigation).
     // Baseline against the current store value so a freshly mounted component (new tab)
-    // doesn't replay stale requests; when there is nothing to show, forward to the recent files.
+    // doesn't replay stale requests; empty sections forward to the next visible section.
     let lastSeenFocusRequest = get(periodicFocusRequest)
     $: if ($periodicFocusRequest > lastSeenFocusRequest) {
         lastSeenFocusRequest = $periodicFocusRequest
@@ -56,12 +56,12 @@
         }
     }
 
-    // Focus the last item when coming back from the recent files filter (Shift+Tab)
+    // Focus the last item when walking backwards into this section.
     let lastSeenFocusBackRequest = get(periodicFocusBackRequest)
     $: if ($periodicFocusBackRequest > lastSeenFocusBackRequest) {
         lastSeenFocusBackRequest = $periodicFocusBackRequest
         if (entries.length === 0) {
-            HomeTabSearchBar?.focusSearchbar()
+            advanceSectionFocus('periodic', true, () => HomeTabSearchBar?.focusSearchbar())
         } else {
             focusListItem(entries.length - 1)
         }
@@ -116,13 +116,7 @@
         else if (e.key === 'Tab') {
             e.preventDefault()
             selectedIndex = -1
-            if (e.shiftKey) {
-                // Shift+Tab (reverse loop): back to the search bar
-                HomeTabSearchBar?.focusSearchbar()
-            } else {
-                // Tab (forward loop): continue along the focus chain (bookmarks / recent sections)
-                advanceSectionFocus('periodic', false, () => HomeTabSearchBar?.focusSearchbar())
-            }
+            advanceSectionFocus('periodic', e.shiftKey, () => HomeTabSearchBar?.focusSearchbar())
         }
     }
 

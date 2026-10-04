@@ -76,6 +76,12 @@ The following filters are available:
 | `pdf` | `pdf` |
 | `canvas` | `canvas` |
 
+### Content layout and search styles
+
+Use **Displayed content → Layout** to drag periodic notes, recent files, and bookmarks into your preferred order, enable collapsible sections, or turn on **Compact mode** for small icons beside single-line file names at every width. The default order is periodic notes → recent files → bookmarks, and keyboard navigation follows the chosen order.
+
+In **Search → Style**, choose **Modern** (the default larger rounded, translucent input), **Classic** (the original appearance), or **Transparent** (no input background or border). The new-note button remains beside the input. Each period also has its own settings group under **Periodic notes**.
+
 ### Embedded search bar
 You can embed the Harbor Tab view in any note with options to show recent files, starred files, or only the search bar.
 

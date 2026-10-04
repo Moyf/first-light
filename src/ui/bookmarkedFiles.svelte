@@ -262,6 +262,7 @@
     {/if}
     {#if !sectionCollapsed}
         <div class="home-tab-bookmarked-files-list"
+            class:compact={pluginSettings.compactMode}
             bind:this={listWrapperEl}
             tabindex="-1"
             on:keydown={handleListKeydown}
@@ -393,6 +394,14 @@
     .home-tab-bookmarked-files-filter-input:focus{
         border-color: var(--interactive-accent);
         background-color: var(--background-modifier-form-field);
+    }
+
+    .home-tab-bookmarked-files-list.compact{
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+        justify-content: unset;
+        align-items: unset;
     }
 
     @media(max-width: 600px){

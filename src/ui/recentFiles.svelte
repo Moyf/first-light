@@ -265,6 +265,7 @@
     </div>
     {#if !sectionCollapsed}
         <div class="home-tab-recent-files-wrapper"
+            class:compact={pluginSettings.compactMode}
             bind:this={listWrapperEl}
             tabindex="-1"
             on:keydown={handleListKeydown}
@@ -394,6 +395,14 @@
         flex-wrap: wrap;
         margin: auto;
         outline: none;
+    }
+
+    .home-tab-recent-files-wrapper.compact{
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+        justify-content: unset;
+        align-items: unset;
     }
 
     @media(max-width: 600px){

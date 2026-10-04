@@ -8,6 +8,7 @@ import {
 import type { Command } from 'obsidian';
 import { EmbeddedHomeTab, HomeTabView, VIEW_TYPE } from 'src/homeView';
 import { HomeTabSettingTab, DEFAULT_SETTINGS, normalizeVaultStatsSettings, type HomeTabSettings } from './settings'
+import { normalizeContentSectionOrder } from './utils/contentSections'
 import { t } from './i18n'
 import { pluginSettingsStore, bookmarkedFiles } from './store'
 import { RecentFileManager } from './recentFiles';
@@ -170,6 +171,7 @@ export default class HomeTab extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<HomeTabSettings>)
 		this.migrateLegacySettings()
 		normalizeVaultStatsSettings(this.settings)
+		this.settings.contentSectionOrder = normalizeContentSectionOrder(this.settings.contentSectionOrder)
 	}
 
 	/** Upgrades settings persisted by older plugin versions in place. */

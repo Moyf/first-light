@@ -33,6 +33,13 @@ const en: BaseMessage = {
 		openInNewTab: 'Open in new tab',
 		openInNewWindow: 'Open in new window',
 	},
+	periodicNoteGroup: {
+		daily: 'Daily',
+		weekly: 'Weekly',
+		monthly: 'Monthly',
+		quarterly: 'Quarterly',
+		yearly: 'Yearly',
+	},
 	group: {
 		searchAndNewNote: 'Search & new note',
 		files: 'Displayed content',
@@ -46,8 +53,10 @@ const en: BaseMessage = {
 		particleCanvas: 'Canvas',
 		particleInteraction: 'Interaction',
 		vaultStatsItems: 'Items',
+		contentOrder: 'Display order',
 	},
 	page: {
+		contentLayout: { name: 'Layout', desc: 'Collapsible sections, compact file rows, and drag-and-drop display order.' },
 		search: { name: 'Search', desc: 'Search behavior, result display, and heading navigation.' },
 		bookmarkedFiles: { name: 'Bookmarks', desc: 'Bookmarks display, filter, and group filtering.' },
 		recentFiles: { name: 'Recent files', desc: 'Display, tracking, and count of the recent files list.' },
@@ -59,6 +68,15 @@ const en: BaseMessage = {
 		vaultStats: { name: 'Vault stats', desc: 'Show vault statistics near the bottom of the home tab.' },
 	},
 	setting: {
+		compactMode: {
+			name: 'Compact mode',
+			desc: 'Always display files as compact rows, with a small icon on the left and the file name on the right.',
+		},
+		searchBarStyle: {
+			name: 'Style',
+			desc: 'Modern uses a larger rounded input with a translucent background and subtle border. Transparent removes the input background and border.',
+			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent' },
+		},
 		replaceNewTabs: {
 			name: 'Replace new tabs with Harbor Tab',
 		},

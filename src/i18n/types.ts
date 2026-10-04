@@ -40,6 +40,13 @@ export interface BaseMessage {
 		quarterly: string
 		yearly: string
 	}
+	periodicNoteGroup: {
+		daily: string
+		weekly: string
+		monthly: string
+		quarterly: string
+		yearly: string
+	}
 	/** Context menu of the periodic notes section */
 	periodicNotesMenu: {
 		createNote: string
@@ -59,9 +66,11 @@ export interface BaseMessage {
 		particleCanvas: string
 		particleInteraction: string
 		vaultStatsItems: string
+		contentOrder: string
 	}
 	page: {
 		search: SettingEntry
+		contentLayout: SettingEntry
 		bookmarkedFiles: SettingEntry
 		recentFiles: SettingEntry
 		newNote: SettingEntry
@@ -96,6 +105,8 @@ export interface BaseMessage {
 		showRecentFiles: SettingEntry
 		showRecentFilesFilter: SettingEntry
 		sectionCollapsible: SettingEntry
+		compactMode: SettingEntry
+		searchBarStyle: SettingEntry & { options: DropdownOptions }
 		storeRecentFile: SettingEntry
 		maxRecentFiles: SettingEntry
 		showNewNoteButton: SettingEntry
