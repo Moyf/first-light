@@ -15,6 +15,7 @@ import { checkFont } from './utils/fontValidator'
 import { t as getLocale } from './i18n'
 import type { SettingEntry } from './i18n/types'
 import ParticleSettingsPreview from './ui/particleSettingsPreview.svelte'
+import { CONTENT_SECTION_KEYS, type ContentSectionKey } from './utils/contentSections'
 
 type ColorChoices = 'default' | 'accentColor' | 'custom'
 type LogoChoices = 'default' | 'imagePath' | 'imageLink' | 'lucideIcon' | 'oldLogo' | 'none'
@@ -123,6 +124,9 @@ export interface HomeTabSettings extends ObjectKeys{
     recentFilesStore: recentFileStore[]
     bookmarkedFileStore: bookmarkedFileStore[]
     sectionCollapsible: boolean // 新增：是否显示折叠按钮，允许折叠最近文件/书签区域
+    contentSectionOrder: ContentSectionKey[]
+    compactMode: boolean
+    searchBarStyle: 'classic' | 'modern' | 'transparent'
     searchDelay: number
     replaceNewTabs: boolean
     newTabOnStart: boolean
@@ -234,6 +238,9 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     recentFilesStore: [],
     bookmarkedFileStore: [],
     sectionCollapsible: false, // 新增：默认不显示折叠按钮
+    contentSectionOrder: [...CONTENT_SECTION_KEYS],
+    compactMode: false,
+    searchBarStyle: 'modern',
     searchDelay: 0,
     replaceNewTabs: true,
     newTabOnStart: false,
@@ -425,6 +432,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                         name: t.page.search.name,
                         desc: t.page.search.desc,
                         items: [
+                            this.dropdownWithReset('searchBarStyle', t.setting.searchBarStyle.name, t.setting.searchBarStyle.desc, t.setting.searchBarStyle.options),
                             {
                                 name: t.setting.useOmnisearch.name,
                                 desc: t.setting.useOmnisearch.desc,
@@ -568,6 +576,39 @@ export class HomeTabSettingTab extends PluginSettingTab {
                 items: [
                     {
                         type: 'page',
+                        name: t.page.contentLayout.name,
+                        desc: t.page.contentLayout.desc,
+                        items: [
+                            {
+                                name: t.setting.sectionCollapsible.name,
+                                desc: t.setting.sectionCollapsible.desc,
+                                control: { type: 'toggle', key: 'sectionCollapsible' },
+                            },
+                            {
+                                name: t.setting.compactMode.name,
+                                desc: t.setting.compactMode.desc,
+                                control: { type: 'toggle', key: 'compactMode' },
+                            },
+                            {
+                                type: 'list',
+                                heading: t.group.contentOrder,
+                                onReorder: (oldIndex, newIndex) => {
+                                    const order = [...s.contentSectionOrder]
+                                    const [moved] = order.splice(oldIndex, 1)
+                                    order.splice(newIndex, 0, moved)
+                                    s.contentSectionOrder = order
+                                    void this.plugin.saveSettings()
+                                    this.update()
+                                },
+                                items: s.contentSectionOrder.map((key) => ({
+                                    name: key === 'periodic' ? t.page.periodicNotes.name
+                                        : key === 'recent' ? t.page.recentFiles.name : t.page.bookmarkedFiles.name,
+                                })),
+                            },
+                        ],
+                    },
+                    {
+                        type: 'page',
                         name: t.page.bookmarkedFiles.name,
                         desc: t.page.bookmarkedFiles.desc,
                         visible: () => !!this.app.internalPlugins.getPluginById('bookmarks'),
@@ -667,7 +708,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 desc: t.setting.periodicNotesUnavailable.desc,
                                 visible: () => s.showPeriodicNotes && s.periodicNotesMode === 'auto' && !hasAutoPeriodSource(this.app),
                             },
-                            ...PERIOD_TYPES.flatMap((type) => this.periodTypeSettings(type, t)),
+                            ...PERIOD_TYPES.map((type) => this.periodTypeSettings(type, t)),
                             ...s.periodicNotesCustom.map((entry, index) => ({
                                 name: index === 0 ? t.setting.periodicNotesCustomEntries.name : `${t.setting.periodicNotesCustomEntries.defaultName} ${index + 1}`,
                                 visible: () => s.showPeriodicNotes && s.periodicNotesMode === 'custom',
@@ -723,12 +764,6 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 items: s.vaultStatsOrder.map((key) => this.vaultStatsItemSetting(key, t)),
                             },
                         ],
-                    },
-                    {
-                        name: t.setting.sectionCollapsible.name,
-                        desc: t.setting.sectionCollapsible.desc,
-                        visible: () => s.showRecentFiles || s.showbookmarkedFiles,
-                        control: { type: 'toggle', key: 'sectionCollapsible' },
                     },
                 ],
             },
@@ -1223,7 +1258,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
     }
 
     /** Per-type settings: show toggle, display-name mode, and custom display name with live preview */
-    private periodTypeSettings(type: (typeof PERIOD_TYPES)[number], t: ReturnType<typeof getLocale>): SettingDefinitionItem[] {
+    private periodTypeSettings(type: (typeof PERIOD_TYPES)[number], t: ReturnType<typeof getLocale>): SettingDefinitionItem {
         const s = this.plugin.settings
         const cap = type[0].toUpperCase() + type.slice(1)
         const showKey = `periodicNotesShow${cap}`
@@ -1233,38 +1268,43 @@ export class HomeTabSettingTab extends PluginSettingTab {
         // The type row is only offered when the source plugin actually provides this period
         const typeAvailable = () => s.showPeriodicNotes && s.periodicNotesMode === 'auto' && !!getAutoPeriodConfigs(this.app)[type]
 
-        return [
-            {
-                name: showName,
-                visible: typeAvailable,
-                control: { type: 'toggle', key: showKey },
-            },
-            this.dropdownWithReset(modeKey, t.setting.periodicNotesLabelMode.name, t.setting.periodicNotesLabelMode.desc, t.setting.periodicNotesLabelMode.options, {
-                visible: () => typeAvailable() && s[showKey] === true,
-                refreshDomAfterChange: true, // show/hide the custom display name input in place
-            }),
-            {
-                name: t.setting.periodicNotesLabelCustom.name,
-                visible: () => typeAvailable() && s[showKey] === true && s[modeKey] === 'custom',
-                render: (setting: Setting) => {
-                    // Live preview: render the {{token}} placeholders as they type
-                    const updatePreview = (): void => {
-                        const value = (s[customKey] as string ?? '').trim()
-                        const preview = value ? `${t.setting.periodicNotesLabelPreview}: ${formatPeriodicLabel(value)}` : undefined
-                        setDescriptionWithPreview(setting, t.setting.periodicNotesLabelCustom.desc ?? '', preview)
-                    }
-                    updatePreview()
-                    setting.addText((text) => text
-                        .setPlaceholder(t.setting.periodicNotesLabelCustom.placeholder)
-                        .setValue(s[customKey] as string ?? '')
-                        .onChange((value) => {
-                            s[customKey] = value
-                            void this.plugin.saveSettings()
-                            updatePreview()
-                        }))
+        return {
+            type: 'group',
+            heading: t.periodicNoteGroup[type],
+            visible: typeAvailable,
+            items: [
+                {
+                    name: showName,
+                    visible: typeAvailable,
+                    control: { type: 'toggle', key: showKey },
                 },
-            },
-        ]
+                this.dropdownWithReset(modeKey, t.setting.periodicNotesLabelMode.name, t.setting.periodicNotesLabelMode.desc, t.setting.periodicNotesLabelMode.options, {
+                    visible: () => typeAvailable() && s[showKey] === true,
+                    refreshDomAfterChange: true, // show/hide the custom display name input in place
+                }),
+                {
+                    name: t.setting.periodicNotesLabelCustom.name,
+                    visible: () => typeAvailable() && s[showKey] === true && s[modeKey] === 'custom',
+                    render: (setting: Setting) => {
+                        // Live preview: render the {{token}} placeholders as they type
+                        const updatePreview = (): void => {
+                            const value = (s[customKey] as string ?? '').trim()
+                            const preview = value ? `${t.setting.periodicNotesLabelPreview}: ${formatPeriodicLabel(value)}` : undefined
+                            setDescriptionWithPreview(setting, t.setting.periodicNotesLabelCustom.desc ?? '', preview)
+                        }
+                        updatePreview()
+                        setting.addText((text) => text
+                            .setPlaceholder(t.setting.periodicNotesLabelCustom.placeholder)
+                            .setValue(s[customKey] as string ?? '')
+                            .onChange((value) => {
+                                s[customKey] = value
+                                void this.plugin.saveSettings()
+                                updatePreview()
+                            }))
+                    },
+                },
+            ],
+        }
     }
 
     /** One editor row (label / folder / format + delete) for a custom periodic note rule */

@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.9.0] - 2026-10-05
+
+### Features
+
+- **Content layout sub-page**: find collapsible sections and the new Compact mode under Displayed content → Layout. Drag Obsidian's native handles to reorder periodic notes, recent files, and bookmarks; this is also their new default order. Tab and Shift+Tab follow the selected order.
+- **Compact mode**: always show file lists as compact rows with a small icon on the left and the file name on the right, regardless of screen width.
+- **Search styles**: Modern is the new default, with a larger rounded input, translucent background, and subtle translucent border. Classic retains the previous appearance; Transparent removes the input background and border. The new-note button stays in its existing position.
+
+### Improvements
+
+- Group daily, weekly, monthly, quarterly, and yearly note settings into their own native setting groups.
+
+<details>
+<summary>中文说明（点击展开）</summary>
+
+### 新增
+
+- **布局子页面**：在「显示内容 → 布局」中集中设置区块折叠和 Compact 模式，使用 Obsidian 原生拖拽手柄调整周期笔记、最近文件、书签的显示顺序；这也是新的默认顺序。Tab / Shift+Tab 会跟随所选顺序。
+- **Compact 模式**：无论屏幕宽度如何，文件列表始终以「左侧小图标、右侧文件名」的紧凑行显示。
+- **搜索样式**：新增并默认使用 Modern，提供更大的圆角输入框、半透明背景和浅色半透明边框。Classic 保留原有外观，Transparent 移除输入框的背景和边框；新建按钮保留原位置。
+
+### 改进
+
+- 日记、周记、月记、季记、年记设置分别放入各自的原生设置组。
+
+</details>
+
 ## [1.8.0] - 2026-09-30
 
 ### Features

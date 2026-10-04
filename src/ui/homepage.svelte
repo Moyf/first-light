@@ -19,36 +19,26 @@
     export let plugin: HomeTab
     export let embeddedView: EmbeddedHomeTab | undefined = undefined
 
-    let bookmarkedFileList: bookmarkedFile[] = []
-    let pluginSettings: HomeTabSettings
-    let recentFileList: recentFile[] = []
-    
-    pluginSettingsStore.subscribe((settings) => {
-        pluginSettings = settings
+    let bookmarkedFileList: bookmarkedFile[] = $bookmarkedFiles ?? []
+    let pluginSettings: HomeTabSettings = $pluginSettingsStore
+    let recentFileList: recentFile[] = $recentFiles ?? []
 
-        if(pluginSettings.showbookmarkedFiles){
-            bookmarkedFiles.subscribe((files) => bookmarkedFileList = files)
-        }
-        if(pluginSettings.showRecentFiles){
-            recentFiles.subscribe((files) => recentFileList = files)
-        }
-    })
+    $: pluginSettings = $pluginSettingsStore
+    $: bookmarkedFileList = $bookmarkedFiles ?? []
+    $: recentFileList = $recentFiles ?? []
 
     // Keep the Tab focus chain aware of which sections actually exist
     $: setFocusChainAvailability({
         bookmarks: isbookmarkedPluginEnabled && renderbookmarkedFiles && (pluginSettings?.showbookmarkedFiles ?? false),
-        recent: renderRecentFiles && (pluginSettings?.showRecentFiles ?? false),
+        recent: renderRecentFiles && recentFileList.length > 0 && (pluginSettings?.showRecentFiles ?? false),
         periodic: renderPeriodicNotes,
-    })
+    }, pluginSettings.contentSectionOrder)
 
     const isbookmarkedPluginEnabled = app.internalPlugins.getPluginById('bookmarks') ? true : false
 
-    // @ts-ignore
-    const renderRecentFiles: boolean = embeddedView ? embeddedView.recentFiles : pluginSettings.showRecentFiles
-    // @ts-ignore
-    const renderbookmarkedFiles: boolean = embeddedView ? embeddedView.bookmarkedFiles : pluginSettings.showbookmarkedFiles
-    // @ts-ignore
-    const renderPeriodicNotes: boolean = embeddedView ? embeddedView.periodicNotes : pluginSettings.showPeriodicNotes
+    $: renderRecentFiles = embeddedView ? embeddedView.recentFiles : pluginSettings.showRecentFiles
+    $: renderbookmarkedFiles = embeddedView ? embeddedView.bookmarkedFiles : pluginSettings.showbookmarkedFiles
+    $: renderPeriodicNotes = embeddedView ? embeddedView.periodicNotes : pluginSettings.showPeriodicNotes
 </script>
   
 <main class="home-tab" class:embedded={embeddedView}>
@@ -62,17 +52,15 @@
 
     <SearchBar {HomeTabSearchBar} embedded={embeddedView ? true : false}/>
 
-    {#if renderPeriodicNotes}
-        <PeriodicNotes {view} {pluginSettings} {HomeTabSearchBar}/>
-    {/if}
-
-    {#if isbookmarkedPluginEnabled && bookmarkedFileList && renderbookmarkedFiles}
-        <BookmarkedFiles bookmarkedFiles={bookmarkedFileList} {view} {pluginSettings} bookmarkedFileManager={plugin.bookmarkedFileManager} {HomeTabSearchBar}/>
-    {/if}
-
-    {#if plugin.recentFileManager && recentFileList.length > 0  && renderRecentFiles}
-        <RecentFiles {recentFileList} {view} {pluginSettings} recentFileManager={plugin.recentFileManager} {HomeTabSearchBar}/>
-    {/if}
+    {#each pluginSettings.contentSectionOrder as section (section)}
+        {#if section === 'periodic' && renderPeriodicNotes}
+            <PeriodicNotes {view} {pluginSettings} {HomeTabSearchBar}/>
+        {:else if section === 'bookmarks' && isbookmarkedPluginEnabled && bookmarkedFileList && renderbookmarkedFiles}
+            <BookmarkedFiles bookmarkedFiles={bookmarkedFileList} {view} {pluginSettings} bookmarkedFileManager={plugin.bookmarkedFileManager} {HomeTabSearchBar}/>
+        {:else if section === 'recent' && plugin.recentFileManager && recentFileList.length > 0 && renderRecentFiles}
+            <RecentFiles {recentFileList} {view} {pluginSettings} recentFileManager={plugin.recentFileManager} {HomeTabSearchBar}/>
+        {/if}
+    {/each}
 </main>
   
   

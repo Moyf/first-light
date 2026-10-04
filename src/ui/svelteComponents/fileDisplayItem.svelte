@@ -52,6 +52,9 @@
 
 <div class="home-tab-file-item" class:use-accent-color="{pluginSettings.selectionHighlight === 'accentColor'}"
     class:selected="{selected}"
+    class:compact={pluginSettings.compactMode}
+    class:has-menu={showMenuButton}
+    class:has-pending={pending}
     on:mousedown|preventDefault="{e => handleMouseClick(e, file)}">
 
     {#if showMenuButton}
@@ -170,6 +173,55 @@
         color: var(--text-on-accent);
         background-color: var(--interactive-accent);
         opacity: 0.85;
+    }
+
+    .home-tab-file-item.compact{
+        display: flex;
+        align-items: center;
+        max-width: 100%;
+        min-width: 0;
+        height: fit-content;
+        padding: 6px 8px;
+        margin: 0;
+    }
+    .compact .home-tab-file-item-preview-icon{
+        flex-shrink: 0;
+        padding: 0;
+        margin-right: 8px;
+    }
+    .compact .home-tab-file-item-preview-icon :global(svg){
+        width: 16px;
+        height: 16px;
+    }
+    .compact .home-tab-file-item-name{
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        -webkit-line-clamp: unset;
+        -webkit-box-orient: unset;
+        padding-right: 0;
+    }
+    .compact.has-menu .home-tab-file-item-name{
+        padding-right: 28px;
+    }
+    .compact.has-pending .home-tab-file-item-name{
+        padding-right: 18px;
+    }
+    .compact .home-tab-file-item-remove_btn{
+        top: 50%;
+        right: 4px;
+        transform: translateY(-50%);
+    }
+    .compact .home-tab-file-item-pending{
+        top: 2px;
+        left: unset;
+        right: 2px;
+        width: 14px;
+        height: 14px;
     }
 
     @media(max-width: 600px){

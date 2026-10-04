@@ -33,6 +33,13 @@ const zhCN: BaseMessage = {
 		openInNewTab: '在新标签页打开',
 		openInNewWindow: '在新窗口打开',
 	},
+	periodicNoteGroup: {
+		daily: '日记',
+		weekly: '周记',
+		monthly: '月记',
+		quarterly: '季记',
+		yearly: '年记',
+	},
 	group: {
 		searchAndNewNote: '搜索与新建',
 		files: '显示内容',
@@ -46,8 +53,10 @@ const zhCN: BaseMessage = {
 		particleCanvas: '画布',
 		particleInteraction: '交互',
 		vaultStatsItems: '统计项',
+		contentOrder: '显示顺序',
 	},
 	page: {
+		contentLayout: { name: '布局', desc: '区块折叠、紧凑文件行与拖拽显示顺序' },
 		search: { name: '搜索', desc: '搜索行为、结果显示与标题跳转' },
 		bookmarkedFiles: { name: '书签', desc: '书签的显示、筛选与分组过滤' },
 		recentFiles: { name: '最近文件', desc: '最近文件列表的显示、记录与数量' },
@@ -59,6 +68,15 @@ const zhCN: BaseMessage = {
 		vaultStats: { name: '库数据', desc: '在主页下方显示库的统计信息' },
 	},
 	setting: {
+		compactMode: {
+			name: 'Compact 模式',
+			desc: '始终以紧凑行显示文件：左侧小图标、右侧文件名。',
+		},
+		searchBarStyle: {
+			name: '样式',
+			desc: 'Modern 使用更大的圆角输入框、半透明背景和浅色半透明边框；Transparent 移除输入框的背景和边框。',
+			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent' },
+		},
 		replaceNewTabs: {
 			name: '将新标签页替换为 Harbor Tab',
 		},

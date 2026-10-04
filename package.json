@@ -1,6 +1,6 @@
 {
   "name": "harbor-tab",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "A browser-like home tab with instant file search, starred and recent files, and an optional interactive particle wordmark.",
   "main": "main.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production && node scripts/copy-styles.mjs",
     "build:local": "pnpm run build && pnpm run copy-to-local",
     "copy-to-local": "node scripts/copy-to-local.mjs",
-    "test": "node scripts/test-particle-sampling.mjs && node scripts/test-particle-recovery.mjs",
+    "test": "node scripts/test-particle-sampling.mjs && node scripts/test-particle-recovery.mjs && node scripts/test-content-layout.mjs",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
   "keywords": [],
