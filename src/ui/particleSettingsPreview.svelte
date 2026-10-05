@@ -12,7 +12,7 @@
        overflow instead of growing with the canvas scale setting. */
     .preview-box{
         width: 100%;
-        height: 220px;
+        min-height: 220px;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -22,7 +22,7 @@
         background: var(--background-primary);
         pointer-events: auto;
     }
-    .preview-box :global(.home-tab-wordmark-container){
+    .preview-box :global(.home-tab-wordmark-wrapper){
         margin-bottom: 0;
     }
     /* The settings window styles hide raw headings inside the tab content
@@ -35,7 +35,7 @@
     }
     @media(max-width: 600px){
         .preview-box{
-            height: 160px;
+            min-height: 160px;
         }
     }
 </style>

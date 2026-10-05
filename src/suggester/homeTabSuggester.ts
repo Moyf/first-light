@@ -75,7 +75,8 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
         // Open file in new tab
         this.scope.register(['Mod'], 'Enter', (e) => {
             e.preventDefault()
-            this.useSelectedItem(this.suggester.getSelectedItem(), true)
+            const selectedItem = this.suggester.getSelectedItem()
+            if (selectedItem) this.useSelectedItem(selectedItem, true)
         })
         // Create file
         this.scope.register(['Shift'], 'Enter', async(e) => {
@@ -169,7 +170,7 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
     }
 
     onOpen(): void {
-        this.updateSearchBarContainerElState(this.suggester.getSuggestions().length > 0 ? true : false)    
+        this.updateSearchBarContainerElState(true)
     }
 
     onClose(): void {
@@ -232,10 +233,7 @@ export default class HomeTabFileSuggester extends TextInputSuggester<Fuse.FuseRe
     }
 
     onNoSuggestion(): void {
-        // 无匹配时保持下拉框完全隐藏：
-        // 之前的「创建 xxx.md」建议会在 open() 后被基类立即 close() 造成闪现，
-        // 新建笔记改由搜索栏的新建按钮 / 回车弹窗承担
-        this.close();
+        super.onNoSuggestion()
     }
     
     getSuggestions(inputStr: string): Fuse.FuseResult<SearchFile>[] {

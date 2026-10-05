@@ -17,6 +17,7 @@ export interface BaseMessage {
 		replaceCurrentTab: string
 	}
 	viewName: string
+	searchNoResults: string
 	newNoteModal: {
 		title: string
 		fileName: string
@@ -62,7 +63,8 @@ export interface BaseMessage {
 		results: string
 		logoLayout: string
 		titleMargin: string
-		particleStyle: string
+		particleColor: string
+		particleEffects: string
 		particleCanvas: string
 		particleInteraction: string
 		vaultStatsItems: string
@@ -106,7 +108,10 @@ export interface BaseMessage {
 		showRecentFilesFilter: SettingEntry
 		sectionCollapsible: SettingEntry
 		compactMode: SettingEntry
+		fileListLayout: SettingEntry & { options: DropdownOptions }
+		displayNameProperties: SettingEntry
 		searchBarStyle: SettingEntry & { options: DropdownOptions }
+		searchDropdownDisplay: SettingEntry & { options: DropdownOptions }
 		storeRecentFile: SettingEntry
 		maxRecentFiles: SettingEntry
 		showNewNoteButton: SettingEntry
@@ -142,6 +147,7 @@ export interface BaseMessage {
 			options: DropdownOptions
 		}
 		logoSource: SettingEntry
+		logoSvgSource: SettingEntry & { placeholder: string; invalidTooltip: string }
 		iconColor: SettingEntry
 		logoPosition: SettingEntry & { options: DropdownOptions }
 		logoMargin: SettingEntry
@@ -174,11 +180,17 @@ export interface BaseMessage {
 		particleEffectColor2: SettingEntry
 		particleEffectGradientAnimation: SettingEntry & { options: DropdownOptions }
 		particleEffectGradientAngle: SettingEntry
+		particleEffectGradientTransition: SettingEntry
+		particleEffectGradientArea: SettingEntry
 		particleEffectGradientFrequency: SettingEntry
+		particleEffectGradientPause: SettingEntry
 		particleEffectScale: SettingEntry
 		particleEffectScaleMobile: SettingEntry
 		particleEffectSpacing: SettingEntry
 		particleEffectDotSize: SettingEntry
+		particleEffectAdaptiveSize: SettingEntry
+		particleEffectCanvasPaddingTop: SettingEntry
+		particleEffectCanvasPaddingBottom: SettingEntry
 		particleEffectDisturbRadius: SettingEntry
 		particleEffectDisturbStrength: SettingEntry
 		particleEffectRecoverySpeed: SettingEntry

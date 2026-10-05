@@ -1,10 +1,12 @@
 // Inspired from @liamcain periodic notes suggest: https://github.com/liamcain/obsidian-periodic-notes/blob/main/src/ui/suggest.ts
 
-import { debounce, Platform, Scope, type App } from 'obsidian'
+import { debounce, Platform, Scope, type App, type Debouncer } from 'obsidian'
 import suggesterView from '../ui/suggesterView.svelte'
 import { createPopper, type Instance as PopperInstance } from '@popperjs/core';
 import { get, writable, type Writable } from 'svelte/store';
 import type { SvelteComponent } from 'svelte';
+import { t } from '../i18n';
+import { mountSearchDropdown } from '../utils/searchDropdown';
 
 /**
  * @param containerClass The class of the suggestion list container.
@@ -20,6 +22,7 @@ export interface suggesterViewOptions{
     additionalClasses?: string
     style?: string
     additionalModalInfo?: HTMLElement
+    emptyStateText?: string
     // additionalComponent?: typeof SvelteComponent
     // additionalComponentProps?: []
 }
@@ -131,13 +134,17 @@ export abstract class TextInputSuggester<T> implements ISuggester{
     protected closingAnimationTimeout: number
     protected closingAnimationRunning: boolean
 
-    private inputListener: (this: HTMLInputElement, ev: Event) => void
+    private inputListener: Debouncer<[Event], Promise<void>>
     private compositionEndListener: () => void
     private lastValue: string
     // Keep a single bound reference so removeEventListener in destroy() can
     // actually detach the blur listener (close.bind(this) creates a new
     // function on every call).
     private boundClose: () => void
+    private requestId = 0
+    private destroyed = false
+    private readonly isHomeSearch: boolean
+    private readonly emptyStateVisible = writable(false)
 
     constructor(app: App, inputEl: HTMLInputElement, suggestionParentContainer: HTMLElement, viewOptions?: suggesterViewOptions, searchDelay?: number){
         this.app = app
@@ -147,7 +154,7 @@ export abstract class TextInputSuggester<T> implements ISuggester{
         this.suggester = new Suggester(this, this.scope)
         
         // 使用较长的延迟时间，并确保只在值变化时触发
-        const delay = searchDelay || 200;
+        const delay = searchDelay ?? 200;
         this.inputListener = debounce(
             async (e: Event) => {
                 // IME 组合输入（拼音等）过程中的 input 事件不触发搜索，
@@ -179,6 +186,8 @@ export abstract class TextInputSuggester<T> implements ISuggester{
         
         this.viewOptions = viewOptions ?? {};
         this.suggestionParentContainer = suggestionParentContainer;
+        this.isHomeSearch = suggestionParentContainer.classList.contains('home-tab-searchbar-container')
+        if (this.isHomeSearch) this.viewOptions.emptyStateText = t().searchNoResults
         this.closingAnimationRunning = false;
     }
     
@@ -188,28 +197,41 @@ export abstract class TextInputSuggester<T> implements ISuggester{
     }
 
     async onInput(): Promise<void>{
+        if (this.destroyed) return
+        const requestId = ++this.requestId
         const input = this.inputEl.value
         this.lastValue = input
         const suggestions = await this.getSuggestions(input)
         
         // 搜索期间输入已经变化：本次结果已过期，直接丢弃，
         // 避免快速输入时新旧结果交替造成闪烁
-        if(this.inputEl.value !== input) return
+        if(this.destroyed || requestId !== this.requestId || this.inputEl.value !== input) return
         
-        // 清除之前的建议
-        this.suggester.setSuggestions([])
+        this.emptyStateVisible.set(false)
+        this.suggester.setSuggestions(suggestions ?? [])
         
         if(suggestions && suggestions.length > 0){
-            this.suggester.setSuggestions(suggestions)
             this.open()
         } else {
             this.onNoSuggestion()
-            this.close()
+            // Keep a stable panel for a nonempty home query, while preserving
+            // specialized fallback rows (e.g. Surfing's new-URL suggestion).
+            if (this.isHomeSearch && input.trim() && !this.suggester.getSuggestions().length) {
+                this.emptyStateVisible.set(true)
+                this.open()
+            }
         }
     }
 
     onNoSuggestion(): void{
-        this.close()
+        if (!this.isHomeSearch || !this.inputEl.value.trim()) this.close()
+    }
+
+    mountDropdown(node: HTMLElement): () => void {
+        const anchor = this.inputEl.parentElement
+        return this.isHomeSearch && anchor
+            ? mountSearchDropdown(node, anchor, this.suggestionParentContainer)
+            : () => {}
     }
 
     getContainerEl(): HTMLElement{
@@ -231,15 +253,28 @@ export abstract class TextInputSuggester<T> implements ISuggester{
     }
 
     open(): void{
-        if(this.closingAnimationRunning) this.abortClosingAnimation()
-        if(this.suggesterView) return
+        if (this.destroyed) return
+        if(this.closingAnimationRunning) {
+            if (this.isHomeSearch) {
+                window.clearTimeout(this.closingAnimationTimeout)
+                this.closingAnimationRunning = false
+            } else {
+                // Generic popovers may detach their mount point on close.
+                this.abortClosingAnimation()
+            }
+        }
         
         this.suggestionContainer = this.getContainerEl()
 
         // 只有在作用域未激活时才推入
-        if (!this.scopeActive) {
+        if (!this.scopeActive && this.inputEl.ownerDocument.activeElement === this.inputEl) {
             this.app.keymap.pushScope(this.scope)
             this.scopeActive = true;
+        }
+
+        if(this.suggesterView) {
+            this.onOpen()
+            return
         }
 
         this.suggesterView = new suggesterView({
@@ -248,6 +283,7 @@ export abstract class TextInputSuggester<T> implements ISuggester{
                 textInputSuggester: this,
                 options: this.viewOptions,
                 viewRoot: this.viewRootEl,
+                emptyStateVisible: this.emptyStateVisible,
             },
             intro: true,
         })
@@ -256,11 +292,14 @@ export abstract class TextInputSuggester<T> implements ISuggester{
     }
 
     close(): void{
+        this.inputListener.cancel()
+        this.requestId++ // In-flight searches must not reopen a dismissed view.
         // 清理键盘作用域
         this.releaseKeyboardScope()
 
         // Reset suggestions
         this.suggester.setSuggestions([])
+        this.emptyStateVisible.set(false)
 
         // Allow svelte to run the animation, then remove the component(s)
         if(this.suggesterView){
@@ -294,6 +333,8 @@ export abstract class TextInputSuggester<T> implements ISuggester{
 
 
     destroy(): void{
+        this.destroyed = true
+        this.inputListener.cancel()
         this.close()
         // close() 可能保留视图（hideOnBlur=false 提前返回）或延迟移除（关闭动画），
         // 销毁时必须立即清除，否则切换建议器后旧下拉会残留并不断叠加

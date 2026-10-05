@@ -35,6 +35,8 @@ export interface PeriodicNoteEntry {
 	/** Text displayed under the icon (custom label or the formatted note name) */
 	label: string
 	icon: IconName
+	/** File-name mode follows the general display-name properties. */
+	useFileDisplayName: boolean
 	/** The note when it already exists in the vault */
 	file: TFile | undefined
 	exists: boolean
@@ -176,6 +178,7 @@ function buildEntry(app: App, noteName: string, folder: string, format: string, 
 		path,
 		label,
 		icon,
+		useFileDisplayName: !trimmedLabel,
 		file,
 		exists: file !== undefined,
 		format,

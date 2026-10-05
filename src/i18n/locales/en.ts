@@ -6,6 +6,7 @@ const en: BaseMessage = {
 		replaceCurrentTab: 'Replace current tab',
 	},
 	viewName: 'Harbor Tab',
+	searchNoResults: 'No results',
 	newNoteModal: {
 		title: 'New note',
 		fileName: 'File name',
@@ -49,14 +50,15 @@ const en: BaseMessage = {
 		results: 'Results display',
 		logoLayout: 'Logo layout',
 		titleMargin: 'Title margin',
-		particleStyle: 'Style',
+		particleColor: 'Color',
+		particleEffects: 'Effects',
 		particleCanvas: 'Canvas',
 		particleInteraction: 'Interaction',
 		vaultStatsItems: 'Items',
 		contentOrder: 'Display order',
 	},
 	page: {
-		contentLayout: { name: 'Layout', desc: 'Collapsible sections, compact file rows, and drag-and-drop display order.' },
+		contentLayout: { name: 'Display', desc: 'Property-based display names, collapsible sections, compact items, and display order.' },
 		search: { name: 'Search', desc: 'Search behavior, result display, and heading navigation.' },
 		bookmarkedFiles: { name: 'Bookmarks', desc: 'Bookmarks display, filter, and group filtering.' },
 		recentFiles: { name: 'Recent files', desc: 'Display, tracking, and count of the recent files list.' },
@@ -68,14 +70,28 @@ const en: BaseMessage = {
 		vaultStats: { name: 'Vault stats', desc: 'Show vault statistics near the bottom of the home tab.' },
 	},
 	setting: {
+		searchDropdownDisplay: {
+			name: 'Dropdown display',
+			desc: 'Overlay covers content below without changing the layout, including embedded search bars.',
+			options: { overlay: 'Overlay', expand: 'Expand height' },
+		},
+		displayNameProperties: {
+			name: 'Use property as name',
+			desc: 'Comma-separated property names, tried in order (e.g. title, aliases). Lists use the first value.',
+		},
 		compactMode: {
 			name: 'Compact mode',
-			desc: 'Always display files as compact rows, with a small icon on the left and the file name on the right.',
+			desc: 'Use small icons beside single-line file names. Items are centered, share each row when space allows, and wrap automatically.',
+		},
+		fileListLayout: {
+			name: 'File list layout',
+			desc: 'Arrange recent files and bookmarks in centered rows or aligned, equal-width grid columns.',
+			options: { centered: 'Centered rows', grid: 'Aligned grid' },
 		},
 		searchBarStyle: {
 			name: 'Style',
-			desc: 'Modern uses a larger rounded input with a translucent background and subtle border. Transparent removes the input background and border.',
-			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent' },
+			desc: 'Modern is large and translucent. Transparent is medium-sized with no background, border, or blur. Minimal is a smaller, square-cornered Classic variant with no border.',
+			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent', minimal: 'Minimal' },
 		},
 		replaceNewTabs: {
 			name: 'Replace new tabs with Harbor Tab',
@@ -284,7 +300,7 @@ const en: BaseMessage = {
 		},
 		logo: {
 			name: 'Logo',
-			desc: 'Remove or set a custom logo. Accepts local files, links to images or lucide icon ids.',
+			desc: 'Remove or set a custom logo. Accepts local files, image links, SVG code or Lucide icon IDs.',
 			placeholder: 'Type anything ... ',
 			invalidTooltip: 'The path/link/icon is not valid.',
 			options: {
@@ -292,12 +308,18 @@ const en: BaseMessage = {
 				oldLogo: 'Obsidian old logo',
 				imagePath: 'Local image',
 				imageLink: 'Link',
+				svgCode: 'SVG code',
 				lucideIcon: 'Lucide icon',
 				none: 'Empty',
 			},
 		},
 		logoSource: {
 			name: 'Logo source',
+		},
+		logoSvgSource: {
+			name: 'SVG code',
+			placeholder: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">…</svg>',
+			invalidTooltip: 'Enter a valid SVG document with an <svg> root.',
 		},
 		iconColor: {
 			name: 'Logo icon color',
@@ -415,7 +437,7 @@ const en: BaseMessage = {
 			},
 		},
 		particleEffectColor: {
-			name: 'Particle color',
+			name: 'Base color',
 			desc: 'Color used by all particles in monochrome mode, and the first gradient color; set separately for light and dark themes',
 		},
 		particleEffectColor2: {
@@ -435,13 +457,33 @@ const en: BaseMessage = {
 			name: 'Gradient angle',
 			desc: 'Direction of the gradient; 180° runs from top to bottom',
 		},
+		particleEffectGradientTransition: {
+			name: 'Gradient transition range',
+			desc: 'Softness of the color boundary: 0% gives a sharp edge; 100% uses the widest blend for the selected area.',
+		},
+		particleEffectGradientArea: {
+			name: 'Gradient area percentage',
+			desc: 'Share of the gradient color across the logo and title, from 10% to 90%.',
+		},
 		particleEffectGradientFrequency: {
 			name: 'Animation frequency',
 			desc: 'Speed of the cycling and breathing color animations (higher = faster)',
 		},
+		particleEffectGradientPause: {
+			name: 'Pause interval',
+			desc: 'Seconds to pause after each cycling loop, or hold each breathing color. 0 keeps the animation continuous.',
+		},
 		particleEffectScale: {
 			name: 'Canvas scale (desktop)',
 			desc: 'How much the particle canvas content is enlarged relative to the original logo and title area; applies on desktop only',
+		},
+		particleEffectCanvasPaddingTop: {
+			name: 'Canvas padding (top)',
+			desc: 'Extra space above the particles, in pixels. Independent of canvas scale.',
+		},
+		particleEffectCanvasPaddingBottom: {
+			name: 'Canvas padding (bottom)',
+			desc: 'Extra space below the particles, in pixels. Independent of canvas scale.',
 		},
 		particleEffectScaleMobile: {
 			name: 'Canvas scale (mobile)',
@@ -453,7 +495,11 @@ const en: BaseMessage = {
 		},
 		particleEffectDotSize: {
 			name: 'Particle size',
-			desc: 'Radius of a single particle',
+			desc: 'Particle radius; adaptive sizing can reduce it near edges and at close spacing',
+		},
+		particleEffectAdaptiveSize: {
+			name: 'Adaptive particle size',
+			desc: 'Keep gaps between particles and shrink them near edges, down to 0.2. Turn off to use one size for all particles.',
 		},
 		particleEffectDisturbRadius: {
 			name: 'Disturbance radius',

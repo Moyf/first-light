@@ -6,6 +6,7 @@ const zhCN: BaseMessage = {
 		replaceCurrentTab: '替换当前标签页',
 	},
 	viewName: 'Harbor Tab',
+	searchNoResults: '无匹配结果',
 	newNoteModal: {
 		title: '新建笔记',
 		fileName: '文件名',
@@ -49,14 +50,15 @@ const zhCN: BaseMessage = {
 		results: '结果显示',
 		logoLayout: 'Logo 布局',
 		titleMargin: '标题边距',
-		particleStyle: '样式',
+		particleColor: '颜色',
+		particleEffects: '效果',
 		particleCanvas: '画布',
 		particleInteraction: '交互',
 		vaultStatsItems: '统计项',
 		contentOrder: '显示顺序',
 	},
 	page: {
-		contentLayout: { name: '布局', desc: '区块折叠、紧凑文件行与拖拽显示顺序' },
+		contentLayout: { name: '显示', desc: '属性显示名、区块折叠、紧凑项目与显示顺序' },
 		search: { name: '搜索', desc: '搜索行为、结果显示与标题跳转' },
 		bookmarkedFiles: { name: '书签', desc: '书签的显示、筛选与分组过滤' },
 		recentFiles: { name: '最近文件', desc: '最近文件列表的显示、记录与数量' },
@@ -68,14 +70,28 @@ const zhCN: BaseMessage = {
 		vaultStats: { name: '库数据', desc: '在主页下方显示库的统计信息' },
 	},
 	setting: {
+		searchDropdownDisplay: {
+			name: '下拉列表显示',
+			desc: '叠加覆盖下方内容，不改变布局高度；嵌入式搜索栏同样生效。',
+			options: { overlay: '叠加覆盖', expand: '拓展高度' },
+		},
+		displayNameProperties: {
+			name: '使用属性作为名称',
+			desc: '用英文逗号分隔属性名，按顺序依次尝试，如 title, aliases。列表取第一个值。',
+		},
 		compactMode: {
 			name: 'Compact 模式',
-			desc: '始终以紧凑行显示文件：左侧小图标、右侧文件名。',
+			desc: '使用左侧小图标、右侧单行文件名；项目居中横向排列，一行可显示多个，并自动换行。',
+		},
+		fileListLayout: {
+			name: '文件列表排列',
+			desc: '最近文件和书签使用居中排列，或按等宽列网格对齐。',
+			options: { centered: '居中排列', grid: '网格对齐' },
 		},
 		searchBarStyle: {
 			name: '样式',
-			desc: 'Modern 使用更大的圆角输入框、半透明背景和浅色半透明边框；Transparent 移除输入框的背景和边框。',
-			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent' },
+			desc: 'Modern 较大且半透明；Transparent 尺寸适中，无背景、边框或模糊；Minimal 是更小的 Classic 变体，使用直角、无边框和更小字号。',
+			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent', minimal: 'Minimal' },
 		},
 		replaceNewTabs: {
 			name: '将新标签页替换为 Harbor Tab',
@@ -284,7 +300,7 @@ const zhCN: BaseMessage = {
 		},
 		logo: {
 			name: '图标',
-			desc: '移除或设置自定义 Logo。支持本地文件、图片链接或 Lucide 图标 ID。',
+			desc: '移除或设置自定义 Logo。支持本地文件、图片链接、SVG 代码或 Lucide 图标 ID。',
 			placeholder: '输入任意内容 ... ',
 			invalidTooltip: '路径/链接/图标无效。',
 			options: {
@@ -292,12 +308,18 @@ const zhCN: BaseMessage = {
 				oldLogo: 'Obsidian 旧版 Logo',
 				imagePath: '本地图片',
 				imageLink: '链接',
+				svgCode: 'SVG 代码',
 				lucideIcon: 'Lucide 图标',
 				none: '空白',
 			},
 		},
 		logoSource: {
 			name: 'Logo 来源',
+		},
+		logoSvgSource: {
+			name: 'SVG 代码',
+			placeholder: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">…</svg>',
+			invalidTooltip: '请输入以 <svg> 为根元素的有效 SVG 文档。',
 		},
 		iconColor: {
 			name: 'Logo 图标颜色',
@@ -415,7 +437,7 @@ const zhCN: BaseMessage = {
 			},
 		},
 		particleEffectColor: {
-			name: '粒子颜色',
+			name: '基础颜色',
 			desc: '单色模式下粒子的统一颜色，也是渐变色的第一个颜色；浅色与深色主题可分别设置',
 		},
 		particleEffectColor2: {
@@ -435,13 +457,33 @@ const zhCN: BaseMessage = {
 			name: '渐变角度',
 			desc: '渐变的方向，180° 为从上到下',
 		},
+		particleEffectGradientTransition: {
+			name: '渐变过渡范围',
+			desc: '控制颜色分界的柔和程度：0% 为清晰分界，100% 使用当前颜色占比下的最大过渡宽度。',
+		},
+		particleEffectGradientArea: {
+			name: '渐变颜色占比',
+			desc: '渐变颜色在 Logo 和标题范围内所占的比例，范围为 10%–90%。',
+		},
 		particleEffectGradientFrequency: {
 			name: '变化频率',
 			desc: '循环渐变与呼吸灯模式的变化速度（数值越大越快）',
 		},
+		particleEffectGradientPause: {
+			name: '停歇间隔',
+			desc: '每轮循环结束后的停歇，或呼吸灯每个颜色的停留时长（秒）。0 表示连续变化。',
+		},
 		particleEffectScale: {
 			name: '画布倍率（桌面端）',
 			desc: '粒子画布内容相对原 Logo 与标题区域的放大倍数，仅桌面端生效',
+		},
+		particleEffectCanvasPaddingTop: {
+			name: '画布上方留白',
+			desc: '粒子上方保留的空间，单位为像素，不随画布倍率缩放。',
+		},
+		particleEffectCanvasPaddingBottom: {
+			name: '画布下方留白',
+			desc: '粒子下方保留的空间，单位为像素，不随画布倍率缩放。',
 		},
 		particleEffectScaleMobile: {
 			name: '画布倍率（移动端）',
@@ -453,7 +495,11 @@ const zhCN: BaseMessage = {
 		},
 		particleEffectDotSize: {
 			name: '粒子大小',
-			desc: '单个粒子的半径',
+			desc: '粒子半径；开启自适应时会根据间距和字形边缘自动缩小',
+		},
+		particleEffectAdaptiveSize: {
+			name: '自适应粒子大小',
+			desc: '保留颗粒间隙，在字形边缘缩小粒子，最小为 0.2。关闭后所有粒子使用统一大小。',
 		},
 		particleEffectDisturbRadius: {
 			name: '扰动范围',

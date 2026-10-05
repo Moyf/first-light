@@ -87,7 +87,8 @@ export default class SurfingSuggester extends TextInputSuggester<Fuse.FuseResult
         // Open url in new tab
         this.scope.register(['Mod'], 'Enter', (e) => {
             e.preventDefault()
-            this.useSelectedItem(this.suggester.getSelectedItem(), true)
+            const selectedItem = this.suggester.getSelectedItem()
+            if (selectedItem) this.useSelectedItem(selectedItem, true)
         })
     }
 
@@ -96,7 +97,7 @@ export default class SurfingSuggester extends TextInputSuggester<Fuse.FuseResult
     }
 
     onOpen(): void {
-        this.updateSearchBarContainerEl(this.suggester.getSuggestions().length > 0 ? true : false)    
+        this.updateSearchBarContainerEl(true)
     }
 
     onClose(): void {

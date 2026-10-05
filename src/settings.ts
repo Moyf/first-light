@@ -1,11 +1,12 @@
 import { App, Setting, PluginSettingTab, normalizePath, Platform, getIconIds, ColorComponent } from 'obsidian'
-import type { IconName, HexString, SettingDefinition, SettingDefinitionItem, SettingDefinitionRender } from 'obsidian'
+import type { IconName, SettingDefinition, SettingDefinitionItem, SettingDefinitionRender } from 'obsidian'
 import type HomeTab from './main'
 import iconSuggester from './suggester/iconSuggester'
 import ImageFileSuggester from './suggester/imageSuggester'
 import CommandSuggester from './suggester/commandSuggester'
 import NewNoteFolderSuggester from './suggester/newNoteFolderSuggester'
 import isLink from './utils/isLink'
+import { normalizeSvgLogo } from './utils/svgLogo'
 import fontSuggester from './suggester/fontSuggester'
 import type { recentFileStore } from './recentFiles'
 import type { bookmarkedFileStore } from './bookmarkedFiles'
@@ -15,10 +16,10 @@ import { checkFont } from './utils/fontValidator'
 import { t as getLocale } from './i18n'
 import type { SettingEntry } from './i18n/types'
 import ParticleSettingsPreview from './ui/particleSettingsPreview.svelte'
-import { CONTENT_SECTION_KEYS, type ContentSectionKey } from './utils/contentSections'
+import type { ContentSectionKey } from './utils/contentSections'
 
 type ColorChoices = 'default' | 'accentColor' | 'custom'
-type LogoChoices = 'default' | 'imagePath' | 'imageLink' | 'lucideIcon' | 'oldLogo' | 'none'
+type LogoChoices = 'default' | 'imagePath' | 'imageLink' | 'svgCode' | 'lucideIcon' | 'oldLogo' | 'none'
 type LogoPosition = 'top' | 'bottom' | 'left' | 'right'
 type FontChoices = 'interfaceFont' | 'textFont' | 'monospaceFont' | 'custom'
 
@@ -35,6 +36,7 @@ interface logoStore extends ObjectKeys{
     lucideIcon: IconName
     imagePath: string
     imageLink: string
+    svgCode?: string
 }
 
 export interface HomeTabSettings extends ObjectKeys{
@@ -71,7 +73,10 @@ export interface HomeTabSettings extends ObjectKeys{
     particleEffectColor2Dark: string
     particleEffectGradientAnimation: 'static' | 'cycle' | 'breathe'
     particleEffectGradientAngle: number
+    particleEffectGradientArea: number
+    particleEffectGradientTransition: number
     particleEffectGradientFrequency: number
+    particleEffectGradientPause: number
     particleEffectAmbientMotion?: 'none' | 'wave' | 'float' | 'undulate' | 'pulse' | 'ripple' | 'breathe' // 新增：粒子的默认漂浮运动模式
     particleEffectMotionFrequency: number
     particleEffectGlow: number
@@ -79,6 +84,9 @@ export interface HomeTabSettings extends ObjectKeys{
     particleEffectScaleMobile: number
     particleEffectSpacing: number
     particleEffectDotSize: number
+    particleEffectAdaptiveSize: boolean
+    particleEffectCanvasPaddingTop: number
+    particleEffectCanvasPaddingBottom: number
     particleEffectDisturbRadius: number
     particleEffectDisturbStrength: number
     particleEffectRecoverySpeed: number
@@ -126,7 +134,10 @@ export interface HomeTabSettings extends ObjectKeys{
     sectionCollapsible: boolean // 新增：是否显示折叠按钮，允许折叠最近文件/书签区域
     contentSectionOrder: ContentSectionKey[]
     compactMode: boolean
-    searchBarStyle: 'classic' | 'modern' | 'transparent'
+    fileListLayout: 'centered' | 'grid'
+    displayNameProperties: string
+    searchBarStyle: 'classic' | 'modern' | 'transparent' | 'minimal'
+    searchDropdownDisplay: 'overlay' | 'expand'
     searchDelay: number
     replaceNewTabs: boolean
     newTabOnStart: boolean
@@ -151,57 +162,64 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     logo: {
         lucideIcon: '', 
         imagePath: '', 
-        imageLink: '',},
+        imageLink: '',
+        svgCode: '',},
     logoPosition: 'left',
-    logoMargin: 12,
-    logoMarginIndividual: false,
+    logoMargin: 16,
+    logoMarginIndividual: true,
     logoMarginTop: 12,
-    logoMarginRight: 12,
+    logoMarginRight: 10,
     logoMarginBottom: 12,
-    logoMarginLeft: 12,
-    logoScale: 1.2,
-    iconColorType: 'default',
+    logoMarginLeft: 0,
+    logoScale: 1.5,
+    iconColorType: 'accentColor',
     wordmark: 'Obsidian',
-    customFont: 'interfaceFont',
-    fontSize: '4em',
+    customFont: 'textFont',
+    fontSize: '3.5em',
     fontColorType: 'default',
     fontWeight: 600,
     titleMargin: 20,
     titleMarginIndividual: false,
-    titleMarginTop: 20,
-    titleMarginRight: 20,
-    titleMarginBottom: 20,
-    titleMarginLeft: 20,
-    particleEffect: false,
-    particleEffectColorMode: 'original',
-    particleEffectColor: '#6C31E3',
-    particleEffectColorDark: '#A78BFA',
-    particleEffectColor2: '#E36C31',
-    particleEffectColor2Dark: '#E89464',
-    particleEffectGradientAnimation: 'static',
-    particleEffectGradientAngle: 180,
-    particleEffectGradientFrequency: 1,
-    particleEffectAmbientMotion: 'none', // 新增：默认无漂浮运动
-    particleEffectMotionFrequency: 1,
-    particleEffectGlow: 0,
+    titleMarginTop: 0,
+    titleMarginRight: 0,
+    titleMarginBottom: 29,
+    titleMarginLeft: 0,
+    particleEffect: true,
+    particleEffectColorMode: 'gradient',
+    particleEffectColor: '#a079ff',
+    particleEffectColorDark: '#d6d1d1',
+    particleEffectColor2: '#8965d7',
+    particleEffectColor2Dark: '#ffffff',
+    particleEffectGradientAnimation: 'cycle',
+    particleEffectGradientAngle: 60,
+    particleEffectGradientArea: 15,
+    particleEffectGradientTransition: 30,
+    particleEffectGradientFrequency: 1.8,
+    particleEffectGradientPause: 0,
+    particleEffectAmbientMotion: 'wave',
+    particleEffectMotionFrequency: 0.55,
+    particleEffectGlow: 40,
     particleEffectScale: 1.9,
     // Mobile renders at 1× so the zoomed canvas never overflows the narrow layout.
     particleEffectScaleMobile: 1,
-    particleEffectSpacing: 2,
-    particleEffectDotSize: 0.5,
+    particleEffectSpacing: 1.5,
+    particleEffectDotSize: 0.4,
+    particleEffectAdaptiveSize: false,
+    particleEffectCanvasPaddingTop: 40,
+    particleEffectCanvasPaddingBottom: 40,
     particleEffectDisturbRadius: 124,
     particleEffectDisturbStrength: 1.8,
     // 1 = the default ripple: disturbed particles overshoot a few times before
     // settling, so a cursor pass leaves a visible wave instead of a snap-back.
-    particleEffectRecoverySpeed: 1.4,
+    particleEffectRecoverySpeed: 1.6,
     maxResults: 5,
     // Cannot read app.internalPlugins at module level: the real availability
     // check happens in main.ts onLayoutReady (disabled -> forced to false)
     showbookmarkedFiles: true,
-    showBookmarkedFilesFilter: true, // 新增：默认显示书签筛选按钮
+    showBookmarkedFilesFilter: true,
     bookmarkedGroups: '', // 新增：默认显示全部书签
     showRecentFiles: true,
-    showRecentFilesFilter: true, // 新增：默认显示最近文件筛选按钮
+    showRecentFilesFilter: true,
     maxRecentFiles: 12,
     storeRecentFile: true,
     showPeriodicNotes: false, // 新增：默认关闭周期笔记
@@ -226,7 +244,7 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     periodicNotesLabelCustomYearly: '', // 新增：自定义显示名称默认为空
     periodicNotesCustom: [], // 新增：默认没有自定义周期笔记
     showPath: true,
-    selectionHighlight: 'default',
+    selectionHighlight: 'accentColor',
     showShortcuts: true,
     markdownOnly: false,
     additionalExtensions: '', // 新增：额外搜索的文件后缀名，默认为空
@@ -237,10 +255,13 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     headingJumpStrategy: 'smart', // 新增：默认使用智能跳转策略
     recentFilesStore: [],
     bookmarkedFileStore: [],
-    sectionCollapsible: false, // 新增：默认不显示折叠按钮
-    contentSectionOrder: [...CONTENT_SECTION_KEYS],
-    compactMode: false,
+    sectionCollapsible: true,
+    contentSectionOrder: ["periodic","recent","bookmarks"],
+    compactMode: true,
+    fileListLayout: 'centered',
+    displayNameProperties: 'title',
     searchBarStyle: 'modern',
+    searchDropdownDisplay: 'overlay',
     searchDelay: 0,
     replaceNewTabs: true,
     newTabOnStart: false,
@@ -250,7 +271,7 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     webUrlSuggestions: true, // 新增：默认开启网址功能（仅当网页浏览器核心插件可用时生效）
     debugMode: false, // 新增：默认关闭调试模式
     hideOnBlur: true, // 新增：默认情况下失去焦点时隐藏搜索结果
-    showNewNoteButton: true, // 新增：默认显示「新建笔记」按钮
+    showNewNoteButton: true,
     newNoteUseCommand: false, // 新增：默认不使用命令覆盖
     newNoteCommandId: '', // 新增：命令 ID 默认为空
     newNoteDefaultFolder: '', // 新增：默认文件夹默认留空（仓库根目录）
@@ -260,13 +281,20 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     newNoteOnUnmatchedName: true, // 新增：默认开启「无匹配时快速新建」
 }
 
-/**
- * 修复旧版本 data.json 中缺失或含未知项的库数据设置：
- * vaultStatsOrder 必须包含全部统计项，vaultStatsItems 只能包含其中的有效项。
- */
+/** Preserve the old shared padding unless an individual side was already saved. */
+export function normalizeParticleCanvasSettings(settings: HomeTabSettings, saved: Partial<HomeTabSettings> & { particleEffectCanvasPadding?: number }): void {
+    const legacy = saved.particleEffectCanvasPadding
+    if (typeof legacy === 'number' && Number.isFinite(legacy)) {
+        if (saved.particleEffectCanvasPaddingTop == null) settings.particleEffectCanvasPaddingTop = legacy
+        if (saved.particleEffectCanvasPaddingBottom == null) settings.particleEffectCanvasPaddingBottom = legacy
+    }
+    delete (settings as HomeTabSettings & { particleEffectCanvasPadding?: number }).particleEffectCanvasPadding
+}
+
+/** Keep persisted vault statistic selections limited to the complete, known order. */
 export function normalizeVaultStatsSettings(settings: HomeTabSettings): void {
     const order = (settings.vaultStatsOrder ?? []).filter((key): key is VaultStatItemKey =>
-        VAULT_STAT_KEYS.includes(key as VaultStatItemKey))
+        VAULT_STAT_KEYS.includes(key))
     VAULT_STAT_KEYS.forEach((key) => {
         if(!order.includes(key)){order.push(key)}
     })
@@ -317,11 +345,12 @@ function fontSizeEmValue(fontSize: string): number {
 }
 
 function setDescriptionWithPreview(setting: Setting, hint: string, preview?: string): void {
-    const description = document.createDocumentFragment()
-    description.append(document.createTextNode(hint))
+    const doc = setting.settingEl.ownerDocument
+    const description = createFragment()
+    description.append(doc.createTextNode(hint))
     if (preview) {
-        description.append(document.createElement('br'))
-        description.append(document.createTextNode(preview))
+        description.createEl('br')
+        description.append(doc.createTextNode(preview))
     }
     setting.setDesc(description)
 }
@@ -433,6 +462,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                         desc: t.page.search.desc,
                         items: [
                             this.dropdownWithReset('searchBarStyle', t.setting.searchBarStyle.name, t.setting.searchBarStyle.desc, t.setting.searchBarStyle.options),
+                            this.dropdownWithReset('searchDropdownDisplay', t.setting.searchDropdownDisplay.name, t.setting.searchDropdownDisplay.desc, t.setting.searchDropdownDisplay.options),
                             {
                                 name: t.setting.useOmnisearch.name,
                                 desc: t.setting.useOmnisearch.desc,
@@ -580,6 +610,11 @@ export class HomeTabSettingTab extends PluginSettingTab {
                         desc: t.page.contentLayout.desc,
                         items: [
                             {
+                                name: t.setting.displayNameProperties.name,
+                                desc: t.setting.displayNameProperties.desc,
+                                control: { type: 'text', key: 'displayNameProperties' },
+                            },
+                            {
                                 name: t.setting.sectionCollapsible.name,
                                 desc: t.setting.sectionCollapsible.desc,
                                 control: { type: 'toggle', key: 'sectionCollapsible' },
@@ -589,6 +624,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 desc: t.setting.compactMode.desc,
                                 control: { type: 'toggle', key: 'compactMode' },
                             },
+                            this.dropdownWithReset('fileListLayout', t.setting.fileListLayout.name, t.setting.fileListLayout.desc, t.setting.fileListLayout.options),
                             {
                                 type: 'list',
                                 heading: t.group.contentOrder,
@@ -784,6 +820,11 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 visible: () => ['imagePath', 'imageLink', 'lucideIcon'].includes(s.logoType),
                                 render: (setting) => this.renderLogoSource(setting, t),
                             },
+                            {
+                                name: t.setting.logoSvgSource.name,
+                                visible: () => s.logoType === 'svgCode',
+                                render: (setting) => this.renderSvgLogoSource(setting, t),
+                            },
                             this.dropdownWithReset('iconColorType', t.setting.iconColor.name, t.setting.iconColor.desc, colorOptions(), {
                                 visible: () => s.logoType === 'lucideIcon',
                                 rebuildAfterChange: true, // re-render so the custom color picker shows up
@@ -939,8 +980,6 @@ export class HomeTabSettingTab extends PluginSettingTab {
                             },
                         ],
                     },
-                    this.dropdownWithReset('selectionHighlight', t.setting.selectionHighlight.name, t.setting.selectionHighlight.desc,
-                        { default: t.common.themeDefault, accentColor: t.common.accentColor }, { refreshAfterChange: true }),
                     {
                         type: 'page',
                         name: t.page.particleEffect.name,
@@ -949,7 +988,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                             {
                                 name: t.setting.particleEffect.name,
                                 desc: t.setting.particleEffect.desc,
-                                control: { type: 'toggle', key: 'particleEffect', defaultValue: false },
+                                control: { type: 'toggle', key: 'particleEffect', defaultValue: DEFAULT_SETTINGS.particleEffect },
                             },
                             {
                                 name: t.setting.particleEffectPreview.name,
@@ -963,7 +1002,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                             },
                             {
                                 type: 'group',
-                                heading: t.group.particleStyle,
+                                heading: t.group.particleColor,
                                 items: [
                                     this.dropdownWithReset('particleEffectColorMode', t.setting.particleEffectColorMode.name, t.setting.particleEffectColorMode.desc, t.setting.particleEffectColorMode.options, {
                                         visible: () => s.particleEffect,
@@ -981,16 +1020,34 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                         visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient',
                                         render: (setting) => this.renderThemeColorSetting(setting, t, 'particleEffectColor2'),
                                     },
-                                    this.dropdownWithReset('particleEffectGradientAnimation', t.setting.particleEffectGradientAnimation.name, t.setting.particleEffectGradientAnimation.desc, t.setting.particleEffectGradientAnimation.options, {
-                                        visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient',
-                                        refreshDomAfterChange: true, // toggles the angle/frequency sliders in place
-                                    }),
+                                    {
+                                        ...this.sliderWithReset('particleEffectGradientArea', t.setting.particleEffectGradientArea.name, t.setting.particleEffectGradientArea.desc, 10, 90, 5),
+                                        visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient' && s.particleEffectGradientAnimation !== 'breathe',
+                                    },
                                     {
                                         ...this.sliderWithReset('particleEffectGradientAngle', t.setting.particleEffectGradientAngle.name, t.setting.particleEffectGradientAngle.desc, 0, 360, 5),
                                         visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient' && s.particleEffectGradientAnimation !== 'breathe',
                                     },
                                     {
+                                        ...this.sliderWithReset('particleEffectGradientTransition', t.setting.particleEffectGradientTransition.name, t.setting.particleEffectGradientTransition.desc, 0, 100, 5),
+                                        visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient' && s.particleEffectGradientAnimation !== 'breathe',
+                                    },
+                                ],
+                            },
+                            {
+                                type: 'group',
+                                heading: t.group.particleEffects,
+                                items: [
+                                    this.dropdownWithReset('particleEffectGradientAnimation', t.setting.particleEffectGradientAnimation.name, t.setting.particleEffectGradientAnimation.desc, t.setting.particleEffectGradientAnimation.options, {
+                                        visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient',
+                                        refreshDomAfterChange: true,
+                                    }),
+                                    {
                                         ...this.sliderWithReset('particleEffectGradientFrequency', t.setting.particleEffectGradientFrequency.name, t.setting.particleEffectGradientFrequency.desc, 0.25, 4, 0.05),
+                                        visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient' && s.particleEffectGradientAnimation !== 'static',
+                                    },
+                                    {
+                                        ...this.sliderWithReset('particleEffectGradientPause', t.setting.particleEffectGradientPause.name, t.setting.particleEffectGradientPause.desc, 0, 10, 0.25),
                                         visible: () => s.particleEffect && s.particleEffectColorMode === 'gradient' && s.particleEffectGradientAnimation !== 'static',
                                     },
                                     this.dropdownWithReset('particleEffectAmbientMotion', t.setting.particleEffectAmbientMotion.name, t.setting.particleEffectAmbientMotion.desc, t.setting.particleEffectAmbientMotion.options, {
@@ -1012,6 +1069,14 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 heading: t.group.particleCanvas,
                                 items: [
                                     {
+                                        ...this.sliderWithReset('particleEffectCanvasPaddingTop', t.setting.particleEffectCanvasPaddingTop.name, t.setting.particleEffectCanvasPaddingTop.desc, 0, 150, 5),
+                                        visible: () => s.particleEffect,
+                                    },
+                                    {
+                                        ...this.sliderWithReset('particleEffectCanvasPaddingBottom', t.setting.particleEffectCanvasPaddingBottom.name, t.setting.particleEffectCanvasPaddingBottom.desc, 0, 150, 5),
+                                        visible: () => s.particleEffect,
+                                    },
+                                    {
                                         ...this.sliderWithReset('particleEffectScale', t.setting.particleEffectScale.name, t.setting.particleEffectScale.desc, 1, 3, 0.1),
                                         visible: () => s.particleEffect,
                                     },
@@ -1020,11 +1085,17 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                         visible: () => s.particleEffect,
                                     },
                                     {
-                                        ...this.sliderWithReset('particleEffectSpacing', t.setting.particleEffectSpacing.name, t.setting.particleEffectSpacing.desc, 1, 8, 0.5),
+                                        ...this.sliderWithReset('particleEffectSpacing', t.setting.particleEffectSpacing.name, t.setting.particleEffectSpacing.desc, 1, 3, 0.1),
                                         visible: () => s.particleEffect,
                                     },
                                     {
-                                        ...this.sliderWithReset('particleEffectDotSize', t.setting.particleEffectDotSize.name, t.setting.particleEffectDotSize.desc, 0.2, 3, 0.1),
+                                        ...this.sliderWithReset('particleEffectDotSize', t.setting.particleEffectDotSize.name, t.setting.particleEffectDotSize.desc, 0.2, 1, 0.05),
+                                        visible: () => s.particleEffect,
+                                    },
+                                    {
+                                        name: t.setting.particleEffectAdaptiveSize.name,
+                                        desc: t.setting.particleEffectAdaptiveSize.desc,
+                                        control: { type: 'toggle', key: 'particleEffectAdaptiveSize', defaultValue: DEFAULT_SETTINGS.particleEffectAdaptiveSize },
                                         visible: () => s.particleEffect,
                                     },
                                 ],
@@ -1049,6 +1120,8 @@ export class HomeTabSettingTab extends PluginSettingTab {
                             },
                         ],
                     },
+                    this.dropdownWithReset('selectionHighlight', t.setting.selectionHighlight.name, t.setting.selectionHighlight.desc,
+                        { default: t.common.themeDefault, accentColor: t.common.accentColor }, { refreshAfterChange: true }),
                 ],
             },
 
@@ -1087,7 +1160,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
             const row = stack.createDiv('harbor-theme-color-row')
             row.createSpan({ text: entry.label, cls: 'harbor-theme-color-label' })
             new ColorComponent(row)
-                .setValue((s[entry.key] ?? '') as HexString)
+                .setValue(s[entry.key] ?? '')
                 .onChange((value) => {
                     s[entry.key] = value
                     void this.plugin.saveSettings()
@@ -1106,6 +1179,32 @@ export class HomeTabSettingTab extends PluginSettingTab {
     }
 
     /** Logo value input with the suggester matching the selected logo type */
+    private renderSvgLogoSource(setting: Setting, t: ReturnType<typeof getLocale>): void {
+        const s = this.plugin.settings
+        const ownerDocument = setting.settingEl.ownerDocument
+        setting.settingEl.addClass('home-tab-svg-source')
+        let warning: HTMLElement
+        setting.addExtraButton(button => {
+            button.setIcon('alert-circle').setTooltip(t.setting.logoSvgSource.invalidTooltip)
+            warning = button.extraSettingsEl
+            warning.addClass('mod-warning')
+            warning.toggleVisibility(false)
+        })
+        setting.addTextArea(text => {
+            text.inputEl.rows = 6
+            text.setPlaceholder(t.setting.logoSvgSource.placeholder)
+                .setValue(s.logo.svgCode ?? '')
+                .onChange(value => {
+                    const svg = normalizeSvgLogo(value, ownerDocument)
+                    warning.toggleVisibility(svg === null)
+                    if (svg !== null) {
+                        s.logo.svgCode = svg
+                        void this.plugin.saveSettings()
+                    }
+                })
+        })
+    }
+
     private renderLogoSource(setting: Setting, t: ReturnType<typeof getLocale>): void {
         const s = this.plugin.settings
         let invalidInputIcon: HTMLElement

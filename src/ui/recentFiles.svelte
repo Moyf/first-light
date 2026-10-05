@@ -266,6 +266,7 @@
     {#if !sectionCollapsed}
         <div class="home-tab-recent-files-wrapper"
             class:compact={pluginSettings.compactMode}
+            class:grid={pluginSettings.fileListLayout === 'grid'}
             bind:this={listWrapperEl}
             tabindex="-1"
             on:keydown={handleListKeydown}
@@ -274,6 +275,7 @@
             {#each filteredFileList as recentFile (recentFile.file.path)}
                 <FileDisplayItem file={recentFile.file} {app} {pluginSettings} {contextualMenu}
                 selected={filteredFileList.indexOf(recentFile) === selectedFileIndex}
+                gridAligned={pluginSettings.fileListLayout === 'grid'}
                 on:itemMenu={(e) => selectedFile = e.detail.file}/>
             {/each}
         </div>
@@ -389,6 +391,7 @@
     .home-tab-recent-files-wrapper{
         display: flex;
         /* min-width: 250px; */
+        width: 100%;
         max-width: 900px;
         align-items: center;
         justify-content: center;
@@ -398,11 +401,18 @@
     }
 
     .home-tab-recent-files-wrapper.compact{
+        gap: 6px 8px;
+    }
+
+    .home-tab-recent-files-wrapper.grid{
+        --home-tab-grid-item-width: 125px;
         display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 2px;
-        justify-content: unset;
-        align-items: unset;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, max(var(--home-tab-grid-item-width), calc((100% - 24px) / 4))), 1fr));
+        gap: 6px 8px;
+        align-items: stretch;
+    }
+    .home-tab-recent-files-wrapper.grid.compact{
+        --home-tab-grid-item-width: 200px;
     }
 
     @media(max-width: 600px){
@@ -411,12 +421,10 @@
             padding-bottom: 75px;
         }
         .home-tab-recent-files-wrapper{
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2px;
-            /* 取消宽屏居中相关设置 */
-            justify-content: unset;
-            align-items: unset;
+            gap: 6px 8px;
+        }
+        .home-tab-recent-files-wrapper.grid{
+            --home-tab-grid-item-width: 200px;
         }
     }
 </style>

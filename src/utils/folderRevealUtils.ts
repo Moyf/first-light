@@ -16,7 +16,7 @@ export function revealFolderInExplorer(app: App, folder?: TFolder, failNotice?: 
             void leaf.setViewState({ type: 'file-explorer' })
             explorerLeaves = app.workspace.getLeavesOfType('file-explorer')
         }
-        app.workspace.revealLeaf(explorerLeaves[0])
+        void app.workspace.revealLeaf(explorerLeaves[0])
         if(folder){
             // 类型保护：旧版本 Obsidian 可能没有 revealInFolder
             const explorerView = explorerLeaves[0].view as unknown as FileExplorerViewLike

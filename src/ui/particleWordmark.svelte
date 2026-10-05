@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte'
     import { pluginSettingsStore } from '../store'
-    import { ParticleWordmarkEngine } from '../utils/particleEngine'
+    import { ParticleWordmarkEngine, normalizeParticleCanvasPadding } from '../utils/particleEngine'
     import { effectiveParticleEffectColors, effectiveParticleEffectScale, isDarkTheme, type HomeTabSettings } from '../settings'
 
     // Deliberately prop-free: everything is read from the settings store, so
@@ -57,7 +57,10 @@
         if (!content) return
         const height = content.getBoundingClientRect().height
         if (height <= 0) return
-        rootEl.style.padding = `${((effectiveParticleEffectScale(settings) - 1) * height) / 2}px 0`
+        const zoomPadding = Math.max(0, (Math.round(effectiveParticleEffectScale(settings) * height) - height) / 2)
+        const top = zoomPadding + normalizeParticleCanvasPadding(settings.particleEffectCanvasPaddingTop, 50)
+        const bottom = zoomPadding + normalizeParticleCanvasPadding(settings.particleEffectCanvasPaddingBottom, 30)
+        rootEl.style.padding = `${top}px 0 ${bottom}px`
     }
 
     function releaseLayout(): void {
@@ -82,12 +85,19 @@
             color2: colors.color2,
             gradientAnimation: settings.particleEffectGradientAnimation ?? 'static',
             gradientAngle: settings.particleEffectGradientAngle ?? 180,
+            gradientArea: settings.particleEffectGradientArea ?? 30,
+            gradientTransition: settings.particleEffectGradientTransition ?? 60,
             gradientFrequency: settings.particleEffectGradientFrequency ?? 1,
+            gradientPause: settings.particleEffectGradientPause ?? 0,
             motionFrequency: settings.particleEffectMotionFrequency ?? 1,
             glow: (settings.particleEffectGlow ?? 0) / 100,
             zoom: effectiveParticleEffectScale(settings),
             spacing: settings.particleEffectSpacing,
             dotSize: settings.particleEffectDotSize,
+            adaptiveSize: settings.particleEffectAdaptiveSize ?? true,
+            canvasPaddingTop: settings.particleEffectCanvasPaddingTop ?? 50,
+            canvasPaddingBottom: settings.particleEffectCanvasPaddingBottom ?? 30,
+            onLayoutChange: reserveLayout,
             repulsionRadius: settings.particleEffectDisturbRadius,
             repulsionStrength: settings.particleEffectDisturbStrength,
             recoverySpeed: settings.particleEffectRecoverySpeed ?? 1,
@@ -177,7 +187,10 @@
             isDarkTheme(),
             s.particleEffectGradientAnimation,
             s.particleEffectGradientAngle,
+            s.particleEffectGradientArea,
+            s.particleEffectGradientTransition,
             s.particleEffectGradientFrequency,
+            s.particleEffectGradientPause,
             s.particleEffectAmbientMotion,
             s.particleEffectMotionFrequency,
             s.particleEffectGlow,
@@ -185,6 +198,9 @@
             s.particleEffectScaleMobile,
             s.particleEffectSpacing,
             s.particleEffectDotSize,
+            s.particleEffectAdaptiveSize,
+            s.particleEffectCanvasPaddingTop,
+            s.particleEffectCanvasPaddingBottom,
             s.particleEffectDisturbRadius,
             s.particleEffectDisturbStrength,
             s.particleEffectRecoverySpeed,
@@ -254,7 +270,7 @@
     })
 </script>
 
-<div bind:this={rootEl} class:home-tab-particle-loading={loading}><slot/></div>
+<div bind:this={rootEl} class="home-tab-wordmark-wrapper" class:home-tab-particle-loading={loading}><slot/></div>
 
 <style>
     /* Hide the original wordmark synchronously while the particle canvas
