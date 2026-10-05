@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+## [1.11.0](https://github.com/Moyf/harbor-tab/compare/1.10.0...1.11.0) - 2026-10-05
+
+### 🐛 Fixed
+
+- **Cycling pause**: Sweep the entire gradient band past the particles before pausing on the base color, so a highlight cannot freeze halfway across the wordmark. Continuous cycling and breathing color holds keep their existing behavior.
+- **Independent logo size**: Logo scale now controls all logo types independently of Title font size, retaining the tuned default proportions.
+
+### ⚡ Changed
+
+- **Particle performance**: Remove Glow and batch shaded gradient particles into at most 17 fills per frame. Render at native display density while keeping source sampling precise, and pause canvases outside the viewport. Update canvas and interaction defaults to the tuned values.
+
+- **Particle interaction**: Remove pointer parallax and particle repulsion; retain falloff with a 0.1–2.0 range and 0.1 step. Add recovery damping (0–100) to reduce bounce independently of recovery speed, and limit disturbance radius to 5–100 px.
+- **Source shading**: Add Preserve source shading, enabled by default for monochrome and gradient modes; turn it off for direct color replacement. Keep brightness variations in opaque images without retaining their original hues.
+- **Built-in logo source**: Use separated-facet SVGs for monochrome/gradient particles only when source shading is disabled; otherwise retain the original modern/old Obsidian logo artwork.
+- **Vault stats**: Enable the display by default for new installations while preserving saved choices.
+
+<details>
+<summary>中文说明（点击展开）</summary>
+
+### 🐛 修复
+
+- **循环停歇**：渐变色带完整扫过粒子后再停留在纯基础颜色，避免闪光卡在文字中间；连续循环及呼吸灯的颜色停留保持原有行为。
+- **独立 Logo 大小**：所有 Logo 类型均只由 Logo 缩放控制，不再随标题字号联动，默认比例保持原样。
+
+### ⚡ 变更
+
+- **粒子性能**：移除 Glow，按明暗批量绘制渐变粒子，每帧最多 17 次填充；保留高精度采样，按屏幕实际像素密度绘制，暂停视口外画布。画布和交互默认值同步调整为最新配置。
+
+- **粒子交互**：移除鼠标视差和粒子间斥力，保留扰动衰减并改为 0.1–2.0、步长 0.1。新增阻尼系数（0–100）单独抑制回弹，扰动半径调整为 5–100 px。
+- **原始明暗**：新增默认开启的「保留原始明暗」，适用于单色和渐变，关闭后直接替换颜色；不透明图片也可保留明暗层次，颜色仍使用设置中的颜色。
+- **内置 Logo 来源**：新旧 Obsidian Logo 仅在粒子单色/渐变且关闭明暗保留时使用切面分离 SVG，其余情况使用原版 Logo。
+- **库统计**：新安装默认显示，保留已有用户的设置。
+
+</details>
+
 ## [1.10.0](https://github.com/Moyf/harbor-tab/compare/1.9.0...1.10.0) - 2026-10-05
 
 ### ⚡ Changed

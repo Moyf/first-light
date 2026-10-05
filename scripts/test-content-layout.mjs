@@ -79,15 +79,15 @@ assert.equal(DEFAULT_SETTINGS.particleEffectGradientTransition, 30);
 assert.equal(DEFAULT_SETTINGS.particleEffectGradientArea, 15);
 assert.equal(DEFAULT_SETTINGS.particleEffectAdaptiveSize, false);
 assert.equal(DEFAULT_SETTINGS.particleEffectCanvasPaddingTop, 40);
-assert.equal(DEFAULT_SETTINGS.particleEffectCanvasPaddingBottom, 40);
+assert.equal(DEFAULT_SETTINGS.particleEffectCanvasPaddingBottom, 0);
 assert.equal(DEFAULT_SETTINGS.particleEffectGradientPause, 0);
 for (const [saved, expected] of [
-    [{}, [40, 40]],
+    [{}, [40, 0]],
     [{ particleEffectCanvasPadding: 40 }, [40, 40]],
     [{ particleEffectCanvasPadding: 40, particleEffectCanvasPaddingTop: 0 }, [0, 40]],
     [{ particleEffectCanvasPadding: 40, particleEffectCanvasPaddingBottom: 15 }, [40, 15]],
     [{ particleEffectCanvasPadding: 40, particleEffectCanvasPaddingTop: 20, particleEffectCanvasPaddingBottom: 0 }, [20, 0]],
-    [{ particleEffectCanvasPadding: NaN }, [40, 40]],
+    [{ particleEffectCanvasPadding: NaN }, [40, 0]],
 ]) {
     const settings = { ...clone(DEFAULT_SETTINGS), ...saved };
     normalizeParticleCanvasSettings(settings, saved);
@@ -103,7 +103,8 @@ assert.equal(DEFAULT_SETTINGS.particleEffect, true);
 assert.equal(DEFAULT_SETTINGS.particleEffectColorMode, 'gradient');
 assert.equal(DEFAULT_SETTINGS.logoScale, 1.5);
 assert.equal(DEFAULT_SETTINGS.showPeriodicNotes, false);
-assert.equal(DEFAULT_SETTINGS.vaultStats, false);
+assert.equal(DEFAULT_SETTINGS.vaultStats, true);
+assert.equal(DEFAULT_SETTINGS.particleEffectPreserveShading, true);
 assert.equal(DEFAULT_SETTINGS.logo.imagePath, '');
 assert.deepEqual(clone(DEFAULT_SETTINGS.recentFilesStore), []);
 assert.equal(DEFAULT_SETTINGS.displayNameProperties, 'title');
@@ -122,6 +123,8 @@ plugin.settings.logoType = 'imagePath';
 assert.ok(!svgSource.visible());
 plugin.settings.logoType = 'default';
 const layout = pages().find(item => item.name === en.page.contentLayout.name);
+const stats = pages().find(item => item.name === en.page.vaultStats.name);
+assert.equal(stats.items.find(item => item.control?.key === 'vaultStats').control.defaultValue, true);
 assert.ok(layout && layout.type === 'page');
 assert.ok(layout.items.find(item => item.control?.key === 'sectionCollapsible'));
 assert.ok(layout.items.find(item => item.control?.key === 'compactMode'));
@@ -153,6 +156,13 @@ assert.equal(en.setting.particleEffectColor.name, 'Base color');
 plugin.settings.particleEffect = true;
 plugin.settings.particleEffectColorMode = 'gradient';
 const colorGroup = particlePage.items.find(item => item.heading === 'Color');
+const shading = colorGroup.items.find(item => item.control?.key === 'particleEffectPreserveShading');
+assert.equal(shading.control.defaultValue, true);
+for (const mode of ['monochrome', 'gradient', 'original']) {
+    plugin.settings.particleEffectColorMode = mode;
+    assert.equal(shading.visible(), mode !== 'original');
+}
+plugin.settings.particleEffectColorMode = 'gradient';
 const areaControl = colorGroup.items.find(item => item.name === en.setting.particleEffectGradientArea.name);
 assert.ok(areaControl.visible());
 plugin.settings.particleEffectGradientAnimation = 'breathe';

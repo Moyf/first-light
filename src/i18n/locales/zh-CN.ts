@@ -361,7 +361,7 @@ const zhCN: BaseMessage = {
 		},
 		logoScale: {
 			name: 'Logo 缩放',
-			desc: '设置 Logo 相对于标题字号的尺寸。',
+			desc: '独立调节 Logo 大小，不随标题字号变化。',
 		},
 		titleMargin: {
 			name: '标题边距',
@@ -436,6 +436,10 @@ const zhCN: BaseMessage = {
 				gradient: '渐变色',
 			},
 		},
+		particleEffectPreserveShading: {
+			name: '保留原始明暗',
+			desc: '单色和渐变模式保留图片及 SVG 的明暗变化。关闭后直接使用所选颜色。',
+		},
 		particleEffectColor: {
 			name: '基础颜色',
 			desc: '单色模式下粒子的统一颜色，也是渐变色的第一个颜色；浅色与深色主题可分别设置',
@@ -471,7 +475,7 @@ const zhCN: BaseMessage = {
 		},
 		particleEffectGradientPause: {
 			name: '停歇间隔',
-			desc: '每轮循环结束后的停歇，或呼吸灯每个颜色的停留时长（秒）。0 表示连续变化。',
+			desc: '渐变扫过后在基础颜色上的停歇，或呼吸灯每个颜色的停留时长（秒）。0 表示连续变化。',
 		},
 		particleEffectScale: {
 			name: '画布倍率（桌面端）',
@@ -509,6 +513,14 @@ const zhCN: BaseMessage = {
 			name: '扰动力度',
 			desc: '鼠标推开粒子的强度',
 		},
+		particleEffectDisturbFalloff: {
+			name: '扰动衰减',
+			desc: '较低时，扰动在半径之外仍有柔和长尾；较高时，受影响区域更接近边界清晰的圆形。',
+		},
+		particleEffectRecoveryDamping: {
+			name: '阻尼系数',
+			desc: '越大越能抑制回弹；100 时平稳回归原位。恢复速度单独控制回归快慢。',
+		},
 		particleEffectRecoverySpeed: {
 			name: '恢复速度',
 			desc: '粒子被光标扰动后回归原位的快慢，数值越低涟漪越悠长',
@@ -529,10 +541,6 @@ const zhCN: BaseMessage = {
 		particleEffectMotionFrequency: {
 			name: '运动频率',
 			desc: '空闲运动的变化速度（数值越大越快）；心跳模式对应两次心跳的间隔',
-		},
-		particleEffectGlow: {
-			name: '辉光强度',
-			desc: '为粒子添加辉光（泛光）效果；0 为关闭，数值越大越亮',
 		},
 		vaultStats: {
 			name: '显示库数据',
