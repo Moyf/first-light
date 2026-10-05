@@ -106,6 +106,7 @@ export interface BaseMessage {
 		showRecentFilesFilter: SettingEntry
 		sectionCollapsible: SettingEntry
 		compactMode: SettingEntry
+		displayNameProperties: SettingEntry
 		searchBarStyle: SettingEntry & { options: DropdownOptions }
 		storeRecentFile: SettingEntry
 		maxRecentFiles: SettingEntry

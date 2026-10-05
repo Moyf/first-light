@@ -76,11 +76,13 @@ The following filters are available:
 | `pdf` | `pdf` |
 | `canvas` | `canvas` |
 
-### Content layout and search styles
+### General display and search styles
 
-Use **Displayed content → Layout** to drag periodic notes, recent files, and bookmarks into your preferred order, enable collapsible sections, or turn on **Compact mode** for small icons beside single-line file names at every width. The default order is periodic notes → recent files → bookmarks, and keyboard navigation follows the chosen order.
+Use **Displayed content → General display** to drag periodic notes, recent files, and bookmarks into your preferred order, enable collapsible sections, or turn on **Compact mode** for small icons beside single-line file names at every width. Compact items are centered and wrap across rows, with multiple items per row when space allows. The default order is periodic notes → recent files → bookmarks, and keyboard navigation follows the chosen order.
 
-In **Search → Style**, choose **Modern** (the default larger rounded, translucent input), **Classic** (the original appearance), or **Transparent** (no input background or border). The new-note button remains beside the input. Each period also has its own settings group under **Periodic notes**.
+**Use property as name** defaults to `title`. Enter comma-separated properties such as `title, aliases` to try each in order, using the first value of a list and falling back to the original file name. Leave empty to use file names. Custom periodic-note labels retain their priority; file-name mode follows this general setting.
+
+In **Search → Style**, choose **Modern** (the default rounded, translucent input with a thick translucent outer ring), **Classic** (the original appearance), **Transparent** (medium-sized, with no input background, border, or blur), or **Minimal** (a smaller Classic variant with square corners, no border, less padding, and a smaller font). The new-note button remains beside the input. Each period also has its own settings group under **Periodic notes**.
 
 ### Embedded search bar
 You can embed the Harbor Tab view in any note with options to show recent files, starred files, or only the search bar.

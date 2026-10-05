@@ -99,10 +99,27 @@
     overflow: hidden;
 }
 .home-tab-searchbar-container[data-search-style='modern'] .home-tab-suggestion-container{
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
     border: 1px solid color-mix(in srgb, var(--text-normal) 16%, transparent);
     background-color: color-mix(in srgb, var(--background-modifier-form-field) 90%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+}
+.home-tab-searchbar-container[data-search-style='transparent'],
+.home-tab-searchbar-container[data-search-style='transparent'] .home-tab-suggestion-container{
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+.home-tab-searchbar-container[data-search-style='minimal'] .home-tab-suggestion-container{
+    min-width: 200px;
+    max-width: 600px;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: var(--font-ui-small);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 .wide-input-container{

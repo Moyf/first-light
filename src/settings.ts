@@ -126,7 +126,8 @@ export interface HomeTabSettings extends ObjectKeys{
     sectionCollapsible: boolean // 新增：是否显示折叠按钮，允许折叠最近文件/书签区域
     contentSectionOrder: ContentSectionKey[]
     compactMode: boolean
-    searchBarStyle: 'classic' | 'modern' | 'transparent'
+    displayNameProperties: string
+    searchBarStyle: 'classic' | 'modern' | 'transparent' | 'minimal'
     searchDelay: number
     replaceNewTabs: boolean
     newTabOnStart: boolean
@@ -240,6 +241,7 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     sectionCollapsible: false, // 新增：默认不显示折叠按钮
     contentSectionOrder: [...CONTENT_SECTION_KEYS],
     compactMode: false,
+    displayNameProperties: 'title',
     searchBarStyle: 'modern',
     searchDelay: 0,
     replaceNewTabs: true,
@@ -579,6 +581,11 @@ export class HomeTabSettingTab extends PluginSettingTab {
                         name: t.page.contentLayout.name,
                         desc: t.page.contentLayout.desc,
                         items: [
+                            {
+                                name: t.setting.displayNameProperties.name,
+                                desc: t.setting.displayNameProperties.desc,
+                                control: { type: 'text', key: 'displayNameProperties' },
+                            },
                             {
                                 name: t.setting.sectionCollapsible.name,
                                 desc: t.setting.sectionCollapsible.desc,

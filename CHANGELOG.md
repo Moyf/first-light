@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased]
+
+### Improvements
+
+- Compact file items now share centered, wrapping rows instead of a single column.
+- Recent files and bookmarks use the same centered layout on narrow screens.
+- Rename Layout to General display and add ordered display-name properties, defaulting to `title`, with list-first-value and file-name fallbacks.
+- Reduce Transparent search size and explicitly remove backdrop blur; add the smaller, square-cornered, borderless Minimal search style.
+- Reduce Modern search height, font, and button size, and replace the thin border with a thicker translucent outer ring.
+
+<details>
+<summary>中文说明（点击展开）</summary>
+
+- Compact 文件项目改为居中横向排列，支持一行多个并自动换行。
+- 窄屏下最近文件和书签统一使用居中布局。
+- 「布局」改名为「通用显示」，新增属性显示名，默认 `title`，支持依次回退、列表取首值和文件名兜底。
+- 缩小 Transparent 搜索框并移除背景模糊；新增更小、直角、无边框的 Minimal 搜索样式。
+- 缩小 Modern 搜索框、字号和按钮，以较厚的半透明外圈替代细边框。
+
+</details>
+
 ## [1.9.0] - 2026-10-05
 
 ### Features

@@ -71,6 +71,7 @@
         class:embedded={embedded}
         class:modern={searchBarStyle === 'modern'}
         class:transparent={searchBarStyle === 'transparent'}
+        class:minimal={searchBarStyle === 'minimal'}
         style:width={embedded || isPhone ? "90%" : "50%"}>
         <div class='nav-file-tag home-tab-suggestion-file-tag hide' bind:this={$activeExtEl}></div>
         <input type="search" spellcheck="false" placeholder="Type to start search..." bind:value={inputValue} bind:this={inputEl}
@@ -126,42 +127,79 @@
         box-shadow: none;
     }
 
-    .home-tab-searchbar.modern,
-    .home-tab-searchbar.transparent{
+    .home-tab-searchbar.modern{
         align-items: center;
-        height: max(64px, calc(var(--input-height) * 1.8));
-        padding: 10px 12px;
-        border-radius: 24px;
+        height: max(48px, calc(var(--input-height) * 1.4));
+        padding: 4px 6px;
+        border-radius: 16px;
     }
     .home-tab-searchbar.modern{
         background-color: color-mix(in srgb, var(--background-modifier-form-field) 72%, transparent);
-        border: 1px solid color-mix(in srgb, var(--text-normal) 16%, transparent);
+        border: none;
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--text-normal) 10%, transparent);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
     }
     .home-tab-searchbar.transparent{
+        align-items: center;
+        height: max(48px, calc(var(--input-height) * 1.5));
+        padding: 6px 10px;
+        border-radius: 18px;
         background: transparent;
         border: none;
         box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
-    .home-tab-searchbar.modern input,
-    .home-tab-searchbar.transparent input{
-        font-size: var(--font-ui-large);
+    .home-tab-searchbar.modern input{
+        padding: 0 8px;
+        font-size: var(--font-ui-medium);
     }
-    .home-tab-searchbar.modern .home-tab-new-note-button,
-    .home-tab-searchbar.transparent .home-tab-new-note-button{
+    .home-tab-searchbar.modern .home-tab-new-note-button{
         flex-shrink: 0;
-        width: 40px;
-        height: 40px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
     }
     .home-tab-searchbar.modern .home-tab-new-note-button{
         border: 1px solid color-mix(in srgb, var(--text-normal) 12%, transparent);
     }
-    .home-tab-searchbar.modern .home-tab-new-note-button svg,
-    .home-tab-searchbar.transparent .home-tab-new-note-button svg{
-        width: 22px;
-        height: 22px;
+    .home-tab-searchbar.modern .home-tab-new-note-button svg{
+        width: 18px;
+        height: 18px;
+    }
+    .home-tab-searchbar.transparent .home-tab-new-note-button{
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+    }
+    .home-tab-searchbar.minimal{
+        align-items: center;
+        height: var(--input-height);
+        min-width: 200px;
+        max-width: 600px;
+        padding: 2px 4px;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+    .home-tab-searchbar.minimal input{
+        padding: 0 6px;
+        font-size: var(--font-ui-small);
+    }
+    .home-tab-searchbar.minimal .home-tab-new-note-button{
+        flex-shrink: 0;
+        width: 24px;
+        height: 100%;
+        max-height: 24px;
+        border-radius: 0;
+    }
+    .home-tab-searchbar.minimal .home-tab-new-note-button svg{
+        width: 14px;
+        height: 14px;
     }
 
     .home-tab-suggestion-file-tag.hide{

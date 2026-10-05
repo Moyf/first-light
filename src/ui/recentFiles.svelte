@@ -389,6 +389,7 @@
     .home-tab-recent-files-wrapper{
         display: flex;
         /* min-width: 250px; */
+        width: 100%;
         max-width: 900px;
         align-items: center;
         justify-content: center;
@@ -398,11 +399,7 @@
     }
 
     .home-tab-recent-files-wrapper.compact{
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 2px;
-        justify-content: unset;
-        align-items: unset;
+        gap: 6px 8px;
     }
 
     @media(max-width: 600px){
@@ -411,12 +408,7 @@
             padding-bottom: 75px;
         }
         .home-tab-recent-files-wrapper{
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2px;
-            /* 取消宽屏居中相关设置 */
-            justify-content: unset;
-            align-items: unset;
+            gap: 6px 8px;
         }
     }
 </style>

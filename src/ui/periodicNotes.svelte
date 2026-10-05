@@ -180,7 +180,7 @@
                 <!-- svelte-ignore a11y-no-static-element-interactions (right-click opens the item menu) -->
                 <div class="home-tab-periodic-note-wrapper"
                     on:contextmenu|preventDefault={(event) => showEntryMenu(event, entry)}>
-                    <FileDisplayItem file={entry.file} displayName={entry.label}
+                    <FileDisplayItem file={entry.file} displayName={entry.useFileDisplayName && entry.file ? undefined : entry.label}
                         {app} {pluginSettings} contextualMenu={new Menu()}
                         customOpen={(newTab) => openEntry(entry, newTab)}
                         showMenuButton={false}

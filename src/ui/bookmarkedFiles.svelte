@@ -291,7 +291,7 @@
     }
     .home-tab-bookmarked-files-list{
         display: flex;
-        align-items: baseline;
+        align-items: center;
         justify-content: center;
         flex-wrap: wrap;
 
@@ -397,16 +397,15 @@
     }
 
     .home-tab-bookmarked-files-list.compact{
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 2px;
-        justify-content: unset;
-        align-items: unset;
+        gap: 6px 8px;
     }
 
     @media(max-width: 600px){
         .home-tab-bookmarked-files-container{
             width: 90%;
+        }
+        .home-tab-bookmarked-files-list{
+            gap: 6px 8px;
         }
     }
 </style>

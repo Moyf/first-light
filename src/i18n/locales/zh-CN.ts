@@ -56,7 +56,7 @@ const zhCN: BaseMessage = {
 		contentOrder: '显示顺序',
 	},
 	page: {
-		contentLayout: { name: '布局', desc: '区块折叠、紧凑文件行与拖拽显示顺序' },
+		contentLayout: { name: '通用显示', desc: '属性显示名、区块折叠、紧凑项目与显示顺序' },
 		search: { name: '搜索', desc: '搜索行为、结果显示与标题跳转' },
 		bookmarkedFiles: { name: '书签', desc: '书签的显示、筛选与分组过滤' },
 		recentFiles: { name: '最近文件', desc: '最近文件列表的显示、记录与数量' },
@@ -68,14 +68,18 @@ const zhCN: BaseMessage = {
 		vaultStats: { name: '库数据', desc: '在主页下方显示库的统计信息' },
 	},
 	setting: {
+		displayNameProperties: {
+			name: '使用属性作为名称',
+			desc: '用英文逗号分隔属性名，按顺序依次尝试，如 title, aliases。列表取第一个值。',
+		},
 		compactMode: {
 			name: 'Compact 模式',
-			desc: '始终以紧凑行显示文件：左侧小图标、右侧文件名。',
+			desc: '使用左侧小图标、右侧单行文件名；项目居中横向排列，一行可显示多个，并自动换行。',
 		},
 		searchBarStyle: {
 			name: '样式',
-			desc: 'Modern 使用更大的圆角输入框、半透明背景和浅色半透明边框；Transparent 移除输入框的背景和边框。',
-			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent' },
+			desc: 'Modern 较大且半透明；Transparent 尺寸适中，无背景、边框或模糊；Minimal 是更小的 Classic 变体，使用直角、无边框和更小字号。',
+			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent', minimal: 'Minimal' },
 		},
 		replaceNewTabs: {
 			name: '将新标签页替换为 Harbor Tab',

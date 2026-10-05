@@ -56,7 +56,7 @@ const en: BaseMessage = {
 		contentOrder: 'Display order',
 	},
 	page: {
-		contentLayout: { name: 'Layout', desc: 'Collapsible sections, compact file rows, and drag-and-drop display order.' },
+		contentLayout: { name: 'General display', desc: 'Property-based display names, collapsible sections, compact items, and display order.' },
 		search: { name: 'Search', desc: 'Search behavior, result display, and heading navigation.' },
 		bookmarkedFiles: { name: 'Bookmarks', desc: 'Bookmarks display, filter, and group filtering.' },
 		recentFiles: { name: 'Recent files', desc: 'Display, tracking, and count of the recent files list.' },
@@ -68,14 +68,18 @@ const en: BaseMessage = {
 		vaultStats: { name: 'Vault stats', desc: 'Show vault statistics near the bottom of the home tab.' },
 	},
 	setting: {
+		displayNameProperties: {
+			name: 'Use property as name',
+			desc: 'Comma-separated property names, tried in order (e.g. title, aliases). Lists use the first value.',
+		},
 		compactMode: {
 			name: 'Compact mode',
-			desc: 'Always display files as compact rows, with a small icon on the left and the file name on the right.',
+			desc: 'Use small icons beside single-line file names. Items are centered, share each row when space allows, and wrap automatically.',
 		},
 		searchBarStyle: {
 			name: 'Style',
-			desc: 'Modern uses a larger rounded input with a translucent background and subtle border. Transparent removes the input background and border.',
-			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent' },
+			desc: 'Modern is large and translucent. Transparent is medium-sized with no background, border, or blur. Minimal is a smaller, square-cornered Classic variant with no border.',
+			options: { classic: 'Classic', modern: 'Modern', transparent: 'Transparent', minimal: 'Minimal' },
 		},
 		replaceNewTabs: {
 			name: 'Replace new tabs with Harbor Tab',
