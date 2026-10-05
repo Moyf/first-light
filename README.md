@@ -76,15 +76,33 @@ The following filters are available:
 | `pdf` | `pdf` |
 | `canvas` | `canvas` |
 
-### General display and search styles
+### Display and search styles
 
-Use **Displayed content → General display** to drag periodic notes, recent files, and bookmarks into your preferred order, enable collapsible sections, or turn on **Compact mode** for small icons beside single-line file names at every width. Compact items are centered and wrap across rows, with multiple items per row when space allows. The default order is periodic notes → recent files → bookmarks, and keyboard navigation follows the chosen order.
+Use **Displayed content → Display** to drag periodic notes, recent files, and bookmarks into your preferred order, enable collapsible sections, or turn on **Compact mode** for small icons beside single-line file names at every width. Compact items are centered and wrap across rows, with multiple items per row when space allows. The default order is periodic notes → recent files → bookmarks, and keyboard navigation follows the chosen order.
 
 **Use property as name** defaults to `title`. Enter comma-separated properties such as `title, aliases` to try each in order, using the first value of a list and falling back to the original file name. Leave empty to use file names. Custom periodic-note labels retain their priority; file-name mode follows this general setting.
 
+**File list layout** defaults to **Centered rows**. Choose **Aligned grid** for up to four equal-width columns in recent files and bookmarks, with fewer columns on narrow panes and support for Compact mode.
+
 In **Search → Style**, choose **Modern** (the default rounded, translucent input with a thick translucent outer ring), **Classic** (the original appearance), **Transparent** (medium-sized, with no input background, border, or blur), or **Minimal** (a smaller Classic variant with square corners, no border, less padding, and a smaller font). The new-note button remains beside the input. Each period also has its own settings group under **Periodic notes**.
 
+Particle settings use **Color**, **Effects**, **Canvas**, and **Interaction** groups. **Base color** pairs with **Gradient color**; the gradient color area defaults to 15% (10–90%), and the transition range defaults to 30% (0–100%). Both spatial controls apply to static/cycling gradients. Glow brightens crisp particle cores and adds translucent outer halos. Spacing is 1–3 (step 0.1), and size is 0.2–1 (step 0.05); Adaptive particle size preserves gaps and shrinks edge dots to follow the logo/title shape.
+
+**Adaptive particle size** is disabled by default for uniform particle radii; enable it to preserve gaps and shrink edge dots, with a minimum radius of 0.2 before zoom. Spatial gradients follow the actual logo/title particles rather than canvas whitespace: a static gradient places the second color toward the chosen angle (90° right, 180° down), while a cycling color band travels across that range. Page spacing remains outside the scaled canvas, and logo/title margins still adjust their placement.
+
+**Canvas padding** has independent top and bottom sliders, defaulting to 40px above and below the particles (0–150px per side, step 5), independent of canvas scale. Existing shared padding values are preserved for both sides. The settings preview grows to include this space.
+
+New installations use a cycling particle gradient with wave motion, Glow 40%, spacing 1.5, and size 0.4. The title uses the vault text font at 3.5em, and Compact mode starts enabled with centered rows. Periodic notes and vault stats remain disabled by default, and custom image sources start empty.
+
+**Pause interval** appears below Animation frequency for Cycling gradient and Breathing light (0–10 seconds, step 0.25, default 0). Cycling pauses after each full loop; breathing holds each color before fading to the other. Frequency changes the animation speed while the pause stays the selected number of seconds. 0 keeps the animation continuous.
+
+In **Logo → Logo**, choose **SVG code** to paste a complete SVG directly into the multiline field. Valid SVG updates the logo; invalid markup shows a warning and keeps the previous image. Clearing the field removes the image. Pasted SVG also works with the particle effect.
+
+With particle effects enabled, both modern and old Obsidian logos use separated-facet SVGs in Monochrome and Gradient modes to keep their facets distinct. Original color and ordinary logo rendering retain the original versions.
+
 ### Embedded search bar
+
+**Search → Dropdown display** defaults to **Overlay**, covering the content below without changing the page height. It works in both standalone tabs and embedded blocks, including blocks that clip their own content. **Expand height** retains the inline layout. Nonempty queries with no matches show **No results**; clearing the query dismisses the list.
 You can embed the Harbor Tab view in any note with options to show recent files, starred files, or only the search bar.
 
 To embed the search bar to a note, you have to create a `search-bar` code block (see the following example).
@@ -123,4 +141,3 @@ Alternatively, you can install with [BRAT](https://github.com/TfTHacker/obsidian
 ## Support
 
 If you like Harbor Tab, consider [buying me a coffee on Ko-fi](https://ko-fi.com/moy) ☕
-

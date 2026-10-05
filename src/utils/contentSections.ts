@@ -7,8 +7,10 @@ export type SectionFocusTarget = 'periodic' | 'bookmarks-filter' | 'bookmarks-li
 export function normalizeContentSectionOrder(value: unknown): ContentSectionKey[] {
     const order: ContentSectionKey[] = []
     if (Array.isArray(value)) {
-        for (const key of value) {
-            if (CONTENT_SECTION_KEYS.includes(key) && !order.includes(key)) order.push(key)
+        const values: readonly unknown[] = value
+        for (const item of values) {
+            const key = CONTENT_SECTION_KEYS.find(candidate => candidate === item)
+            if (key && !order.includes(key)) order.push(key)
         }
     }
     for (const key of CONTENT_SECTION_KEYS) {

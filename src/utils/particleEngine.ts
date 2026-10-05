@@ -23,11 +23,17 @@ export interface ParticleWordmarkOptions {
     gradientAnimation: GradientAnimation
     /** Gradient direction in CSS degrees (0° = to top, 180° = to bottom). */
     gradientAngle: number
+    /** Share of the second color in each spatial gradient, 10–90%. */
+    gradientArea: number
+    /** Transition softness, 0 (sharp edge) to 100 (widest blend for this area). */
+    gradientTransition: number
     /** Gradient animation speed multiplier (cycle/breathe). */
     gradientFrequency: number
+    /** Pause after each cycling loop or at each breathing color, in seconds. */
+    gradientPause: number
     /** Idle motion speed multiplier (heartbeat: beats per interval). */
     motionFrequency: number
-    /** Bloom glow strength, 0 (off) to 1. */
+    /** Halo strength, 0 (off) to 1. */
     glow: number
     /** Enlargement of the canvas content relative to the original wordmark box. */
     zoom: number
@@ -35,6 +41,13 @@ export interface ParticleWordmarkOptions {
     spacing: number
     /** Radius of a single particle, CSS pixels (before zoom). */
     dotSize: number
+    /** Preserve particle gaps and shrink particles near the glyph edge (default true). */
+    adaptiveSize: boolean
+    /** Vertical safety space, in CSS pixels after zoom (defaults: top 50, bottom 30). */
+    canvasPaddingTop: number
+    canvasPaddingBottom: number
+    /** Keep the wrapper's reserved space in sync after responsive resampling. */
+    onLayoutChange?: () => void
     /** Radius of the cursor disturbance area, CSS pixels. */
     repulsionRadius: number
     /** How strongly the cursor pushes particles away. */
@@ -51,6 +64,11 @@ export interface ParticleWordmarkOptions {
 }
 
 export type AmbientMotion = 'none' | 'wave' | 'float' | 'undulate' | 'pulse' | 'ripple' | 'breathe'
+
+export function normalizeParticleCanvasPadding(value: number | undefined, fallback = 50): number {
+    const padding = value ?? fallback
+    return Number.isFinite(padding) ? Math.round(Math.min(Math.max(padding, 0), 150)) : fallback
+}
 
 // Offscreen raster headroom. Glyph ink can overflow the measured content box
 // (CJK descenders, tight line boxes), and a build that runs during a layout
@@ -178,7 +196,7 @@ const RIPPLE_AMPLITUDE = 1.4 // CSS px, radial excursion of a ring crest
 // Gradient animation paces (seconds per full pattern cycle at 1× frequency).
 const CYCLE_BASE_PERIOD = 6 // the alternating stop pattern scrolls one gradient-length
 const BREATHE_BASE_PERIOD = 4 // color A fades to B and back to A
-// Bloom glow: blur radius of the additive pass, in CSS pixels.
+// Portable glow: target downsampling footprint, in CSS pixels.
 const GLOW_BLUR_PX = 6
 
 // Sine lookup table: idle motion replaces up-to-15k Math.sin calls per frame
@@ -218,11 +236,16 @@ export class ParticleWordmarkEngine {
     private readonly repulsionRadius: number
     private readonly repulsionStrength: number
     private readonly zoom: number
+    private readonly canvasPaddingTop: number
+    private readonly canvasPaddingBottom: number
     private readonly ambientMotion: AmbientMotion
     private readonly colorMode: ParticleColorMode
     private readonly gradientAnimation: GradientAnimation
     private readonly gradientAngle: number
+    private readonly gradientArea: number
+    private readonly gradientTransition: number
     private readonly gradientFrequency: number
+    private readonly gradientPause: number
     private readonly motionFrequency: number
     private readonly glow: number
     private readonly colorA: RGB
@@ -242,10 +265,12 @@ export class ParticleWordmarkEngine {
     private scale = 1
     /** Headroom (CSS px) padded around the content box in the offscreen raster. */
     private rasterPad = 0
-    /** Cached downsample chain of the glow bloom, sized to the canvas. */
+    /** Cached downsample chain for the halo, sized to the canvas. */
     private glowChain: HTMLCanvasElement[] = []
     private glowChainWidth = 0
     private glowChainHeight = 0
+    /** Average dot coverage within a lattice cell, used to normalize sparse halos. */
+    private glowDensity = 0.25
     private contentWidth = 0
     private contentHeight = 0
     /** Container coords -> canvas-local coords offset (canvas is zoom× wide, centered). */
@@ -254,6 +279,8 @@ export class ParticleWordmarkEngine {
     /** Canvas size in CSS pixels = content size × zoom. */
     private cssWidth = 0
     private cssHeight = 0
+    /** Stable gradient axis projected from home positions, excluding canvas whitespace. */
+    private gradientAxis: { centerX: number; centerY: number; extent: number } | null = null
     private rafId: number | null = null
     private buildToken = 0
     private destroyed = false
@@ -297,9 +324,14 @@ export class ParticleWordmarkEngine {
     }
 
     private readonly handleResize = (): void => {
+        this.scheduleResample(RESIZE_DEBOUNCE_MS)
+    }
+
+    private scheduleResample(delay: number): void {
         if (this.destroyed) return
-        if (this.resizeTimer !== null) window.clearTimeout(this.resizeTimer)
-        this.resizeTimer = window.setTimeout(() => {
+        const ownerWindow = this.container.ownerDocument.defaultView ?? window
+        if (this.resizeTimer !== null) ownerWindow.clearTimeout(this.resizeTimer)
+        this.resizeTimer = ownerWindow.setTimeout(() => {
             this.resizeTimer = null
             if (this.destroyed || !this.container.isConnected || !this.canvas) return
             const rect = this.resolveContentRect()
@@ -308,17 +340,19 @@ export class ParticleWordmarkEngine {
             // is unaffected by the wrapper's zoom padding), so the check is
             // stable across rebuilds.
             if (Math.abs(rect.width - this.contentWidth) < 1 && Math.abs(rect.height - this.contentHeight) < 1) return
-            // Circuit breaker: stop runaway rebuild loops.
+            if (rect.width <= 0 || rect.height <= 0) return
+            // Rapid typing, scrollbar changes and pane dragging can all cause
+            // real resizes. Bound rebuild work while keeping the live canvas,
+            // then retry the latest size after the layout settles.
             const now = Date.now()
             this.rebuildTimestamps = this.rebuildTimestamps.filter((time) => now - time < 3000)
-            this.rebuildTimestamps.push(now)
-            if (this.rebuildTimestamps.length > 5) {
-                console.warn('[home-tab] Particle effect: the wordmark container keeps resizing; auto-resample stopped to avoid a rebuild loop.')
-                this.destroy()
+            if (this.rebuildTimestamps.length >= 5) {
+                this.scheduleResample(1000)
                 return
             }
+            this.rebuildTimestamps.push(now)
             void this.resample()
-        }, RESIZE_DEBOUNCE_MS)
+        }, delay)
     }
 
     constructor(container: HTMLElement, options: ParticleWordmarkOptions) {
@@ -329,11 +363,18 @@ export class ParticleWordmarkEngine {
         this.repulsionRadius = options.repulsionRadius * (this.isTouch ? TOUCH_REPULSION_FACTOR : 1)
         this.repulsionStrength = options.repulsionStrength
         this.zoom = Math.min(Math.max(options.zoom, 1), MAX_ZOOM)
+        this.canvasPaddingTop = normalizeParticleCanvasPadding(options.canvasPaddingTop, 50)
+        this.canvasPaddingBottom = normalizeParticleCanvasPadding(options.canvasPaddingBottom, 30)
         this.ambientMotion = options.ambientMotion ?? 'none'
         this.colorMode = options.colorMode ?? 'original'
         this.gradientAnimation = options.gradientAnimation ?? 'static'
         this.gradientAngle = options.gradientAngle ?? 180
+        const area = options.gradientArea ?? 30
+        this.gradientArea = Number.isFinite(area) ? Math.min(Math.max(area, 10), 90) / 100 : 0.3
+        const transition = options.gradientTransition ?? 60
+        this.gradientTransition = Number.isFinite(transition) ? Math.min(Math.max(transition, 0), 100) / 100 : 0.6
         this.gradientFrequency = Math.max(options.gradientFrequency ?? 1, 0.01)
+        this.gradientPause = Number.isFinite(options.gradientPause) ? Math.min(10, Math.max(0, options.gradientPause)) : 0
         this.motionFrequency = Math.max(options.motionFrequency ?? 1, 0.01)
         this.glow = Math.min(Math.max(options.glow ?? 0, 0), 1)
         this.colorA = parseHexColor(options.color)
@@ -390,17 +431,7 @@ export class ParticleWordmarkEngine {
         if (this.destroyed || token !== this.buildToken) return false
 
         this.scale = scale
-        this.contentWidth = containerRect.width
-        this.contentHeight = containerRect.height
-        // The canvas and the reserved layout space are zoom× the content size.
-        // Rounded to whole CSS pixels: a fractional canvas box (zoom 1.9 of a
-        // fractional content height) makes the browser resample the integer
-        // device bitmap subpixel-wise and streaks 1px artifacts at the edges.
-        this.cssWidth = Math.round(containerRect.width * this.zoom)
-        this.cssHeight = Math.round(containerRect.height * this.zoom)
-        // The zoomed canvas is centered on the container box.
-        this.mouseOffsetX = (this.cssWidth - containerRect.width) / 2
-        this.mouseOffsetY = 0
+        this.updateCanvasDimensions(containerRect.width, containerRect.height)
 
         try {
             this.particles = this.sampleParticles(offscreen, offscreenContext)
@@ -471,12 +502,7 @@ export class ParticleWordmarkEngine {
         try {
             const particles = this.sampleParticles(offscreen, offscreenContext)
             if (this.destroyed || token !== this.buildToken || !this.canvas || !this.renderContext) return
-            this.contentWidth = contentRect.width
-            this.contentHeight = contentRect.height
-            this.cssWidth = contentRect.width * this.zoom
-            this.cssHeight = contentRect.height * this.zoom
-            this.mouseOffsetX = (this.cssWidth - contentRect.width) / 2
-            this.mouseOffsetY = 0
+            this.updateCanvasDimensions(contentRect.width, contentRect.height)
             this.particles = particles
             const width = Math.ceil(this.cssWidth * scale)
             const height = Math.ceil(this.cssHeight * scale)
@@ -489,12 +515,23 @@ export class ParticleWordmarkEngine {
                 width: `${this.cssWidth}px`,
                 height: `${this.cssHeight}px`
             })
+            this.options.onLayoutChange?.()
         } catch (error) {
             // A remote logo image without CORS headers taints the canvas and
             // makes getImageData throw: fall back to the normal rendering.
             console.warn('[home-tab] Particle effect: unable to sample the wordmark pixels; falling back to the normal rendering.', error)
             this.destroy()
         }
+    }
+
+    /** Initial builds and resampling use exactly the same integer CSS dimensions. */
+    private updateCanvasDimensions(width: number, height: number): void {
+        this.contentWidth = width
+        this.contentHeight = height
+        this.cssWidth = Math.round(width * this.zoom)
+        this.cssHeight = Math.round(height * this.zoom) + this.canvasPaddingTop + this.canvasPaddingBottom
+        this.mouseOffsetX = (this.cssWidth - width) / 2
+        this.mouseOffsetY = 0
     }
 
     /** Finds the logo and title sources (always captured together). */
@@ -624,17 +661,73 @@ export class ParticleWordmarkEngine {
     private sampleParticles(offscreen: HTMLCanvasElement, context: CanvasRenderingContext2D): Particle[] {
         const { data } = context.getImageData(0, 0, offscreen.width, offscreen.height)
         const mono = this.colorMode === 'monochrome' ? parseHexColor(this.options.color) : null
-        let step = this.options.spacing * this.scale // device pixels
-        let particles = this.collectParticles(data, offscreen.width, offscreen.height, step, mono)
+        // A sparse lattice cannot represent thin strokes. Bound legacy values
+        // too, without rewriting the user's stored settings.
+        const spacing = Number.isFinite(this.options.spacing) ? Math.min(Math.max(this.options.spacing, 1), 3) : 2
+        let step = spacing * this.scale // device pixels
+        const edges = this.options.adaptiveSize === false ? null : this.inkEdgeDistances(data, offscreen.width, offscreen.height)
+        let particles = this.collectParticles(data, edges, offscreen.width, offscreen.height, step, mono)
         while (particles.length > MAX_PARTICLES) {
             step *= 2
-            particles = this.collectParticles(data, offscreen.width, offscreen.height, step, mono)
+            particles = this.collectParticles(data, edges, offscreen.width, offscreen.height, step, mono)
         }
+        let area = 0
+        for (const particle of particles) area += 4 * particle.radius * particle.radius
+        const cellSize = step / this.scale * this.zoom
+        this.glowDensity = particles.length ? Math.min(1, Math.max(0.01, area / (particles.length * cellSize * cellSize))) : 0.25
+        this.updateGradientAxis(particles)
         return particles
     }
 
-    private collectParticles(data: Uint8ClampedArray, width: number, height: number, step: number, mono: RGB | null): Particle[] {
+    private updateGradientAxis(particles: Particle[]): void {
+        if (particles.length === 0) {
+            this.gradientAxis = null
+            return
+        }
+        const angle = this.gradientAngle * Math.PI / 180
+        const dx = Math.sin(angle)
+        const dy = -Math.cos(angle)
+        let min = Infinity, max = -Infinity
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+        for (const particle of particles) {
+            const projection = particle.hx * dx + particle.hy * dy
+            min = Math.min(min, projection)
+            max = Math.max(max, projection)
+            minX = Math.min(minX, particle.hx)
+            maxX = Math.max(maxX, particle.hx)
+            minY = Math.min(minY, particle.hy)
+            maxY = Math.max(maxY, particle.hy)
+        }
+        const x = (minX + maxX) / 2, y = (minY + maxY) / 2
+        const shift = (min + max) / 2 - (x * dx + y * dy)
+        this.gradientAxis = { centerX: x + dx * shift, centerY: y + dy * shift, extent: Math.max(0.5, (max - min) / 2) }
+    }
+
+    /** Square distance to transparent ink, computed once per raster, never per frame. */
+    private inkEdgeDistances(data: Uint8ClampedArray, width: number, height: number): Uint16Array {
+        const distances = new Uint16Array(width * height)
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const i = y * width + x
+                if (data[i * 4 + 3] <= MIN_ALPHA) continue
+                if (x === 0 || y === 0 || x === width - 1 || y === height - 1) distances[i] = 1
+                else distances[i] = 1 + Math.min(distances[i - 1], distances[i - width - 1], distances[i - width], distances[i - width + 1])
+            }
+        }
+        for (let y = height - 2; y > 0; y--) {
+            for (let x = width - 2; x > 0; x--) {
+                const i = y * width + x
+                if (distances[i]) distances[i] = Math.min(distances[i], 1 + Math.min(distances[i + 1], distances[i + width - 1], distances[i + width], distances[i + width + 1]))
+            }
+        }
+        return distances
+    }
+
+    private collectParticles(data: Uint8ClampedArray, edges: Uint16Array | null, width: number, height: number, step: number, mono: RGB | null): Particle[] {
         const particles: Particle[] = []
+        const size = Number.isFinite(this.options.dotSize) ? Math.min(Math.max(this.options.dotSize, 0.2), 1) : 0.5
+        // Keep at least 20% air between adjacent particles, even at maximum size.
+        const radius = edges ? Math.min(size, step / this.scale * 0.4) : size
         // Content box in device pixels (the raster pads it by rasterPad on
         // every side); samples on or beyond its inset border are dropped —
         // that is where clipped ink and glyph fringes would smear into a
@@ -657,7 +750,7 @@ export class ParticleWordmarkEngine {
                 // The raster pad is translated headroom, not content: subtract it
                 // before mapping into canvas space.
                 const hx = (x / this.scale - this.rasterPad) * this.zoom
-                const hy = (y / this.scale - this.rasterPad) * this.zoom
+                const hy = (y / this.scale - this.rasterPad) * this.zoom + this.canvasPaddingTop
                 let fill: string
                 if (mono) {
                     // Single hue, but keep the source's light/dark variation:
@@ -674,7 +767,9 @@ export class ParticleWordmarkEngine {
                     hy,
                     vx: 0,
                     vy: 0,
-                    radius: this.options.dotSize * this.zoom,
+                    // Shrink boundary particles so enlarged dots retain the
+                    // source silhouette rather than spilling into counters/gaps.
+                    radius: (edges ? Math.max(0.2, Math.min(radius, (edges[index / 4] - 0.5 - Math.max(x % 1, y % 1)) / this.scale)) : radius) * this.zoom,
                     fill,
                 })
             }
@@ -767,7 +862,7 @@ export class ParticleWordmarkEngine {
 
     private teardown(): void {
         if (this.resizeTimer !== null) {
-            window.clearTimeout(this.resizeTimer)
+            (this.container.ownerDocument.defaultView ?? window).clearTimeout(this.resizeTimer)
             this.resizeTimer = null
         }
         if (this.resizeObserver) {
@@ -894,8 +989,15 @@ export class ParticleWordmarkEngine {
 
     private render(): void {
         const context = this.renderContext
-        if (!context) return
-        context.clearRect(0, 0, this.cssWidth, this.cssHeight)
+        const canvas = this.canvas
+        if (!context || !canvas) return
+        // The bitmap is rounded UP in device pixels. A CSS-space clear can
+        // miss the final fractional row/column (especially after resampling),
+        // leaving a colored fringe that glow feeds back into later frames.
+        context.save()
+        context.setTransform(1, 0, 0, 1, 0, 0)
+        context.clearRect(0, 0, canvas.width, canvas.height)
+        context.restore()
         const particles = this.particles
         const motion = this.ambientMotion
         // Real time (not a frame counter) so the pace is identical on 60Hz and 120Hz+ displays.
@@ -903,7 +1005,7 @@ export class ParticleWordmarkEngine {
         // Gradient modes paint every particle with one frame-wide fill (a canvas
         // gradient or an interpolated solid color); the other modes use the
         // per-particle fills captured at sample time.
-        const frameFill = this.colorMode === 'gradient' ? this.gradientFrameFill(context, now * this.gradientFrequency) : null
+        const frameFill = this.colorMode === 'gradient' ? this.gradientFrameFill(context, now) : null
         const time = now * this.motionFrequency
         if (motion === 'none') {
             this.renderStatic(context, particles, frameFill)
@@ -918,8 +1020,7 @@ export class ParticleWordmarkEngine {
     }
 
     /**
-     * Bloom glow: re-draws the finished frame onto itself through a blur
-     * with additive blending. The blur is a downsample chain (halving steps
+     * Translucent outer halos behind luminous, crisp cores. The blur is a downsample chain (halving steps
      * average the neighborhood, the smoothed upscale spreads it back), which
      * every canvas engine renders — canvas `filter: blur()` is unsupported
      * by WebKit and would silently skip the glow on iOS. One pass whose cost
@@ -940,34 +1041,60 @@ export class ParticleWordmarkEngine {
             stepContext.drawImage(previous, 0, 0, canvas.width, canvas.height)
             previous = canvas
         }
+        const near = chain[Math.max(0, chain.length - 2)]
+        // A sparse lattice loses alpha when blurred. Compensate its measured
+        // coverage on the small buffers, while keeping the final halo opacity
+        // capped below. Dense dots need much less gain, so they cannot turn
+        // the same slider value into opaque fog. Low strengths stay subtle.
+        const gain = 1 + (Math.min(32, 1 / this.glowDensity) - 1) * this.glow * this.glow
+        if (near !== previous) this.normalizeHalo(near, gain)
+        this.normalizeHalo(previous, gain)
         context.save()
         context.setTransform(1, 0, 0, 1, 0, 0)
-        context.globalCompositeOperation = 'lighter'
+        // Brighten the exact particle shapes, without spreading their core.
+        // Screen stays bounded instead of additive clipping to white. Read
+        // the clean canvas once; the halo below was also sampled before this.
+        context.globalCompositeOperation = 'screen'
+        context.globalAlpha = this.glow * 0.65
+        context.drawImage(source, 0, 0)
+        context.globalCompositeOperation = 'destination-over'
         context.imageSmoothingEnabled = true
-        // Energy budget = 2× strength: at max the glow is applied twice, and
-        // the second pass re-blurs the first pass's halo on top, compounding
-        // into a wider and much brighter bloom than a single pass could give.
-        let energy = this.glow * 2
-        while (energy > 0.01) {
-            context.globalAlpha = Math.min(energy, 1)
-            context.drawImage(previous, 0, 0, source.width, source.height)
-            energy -= 1
+        // Put most of the light in the outer halo. The near layer remains
+        // faint so the particle outlines and gaps keep their contrast.
+        context.globalAlpha = this.glow * 0.25
+        context.drawImage(near, 0, 0, source.width, source.height)
+        context.globalAlpha = this.glow * 0.55
+        context.drawImage(previous, 0, 0, source.width, source.height)
+        context.restore()
+    }
+
+    /** Source-over grows halo coverage without additive color clipping. */
+    private normalizeHalo(canvas: HTMLCanvasElement, gain: number): void {
+        if (gain <= 1.001) return
+        const context = canvas.getContext('2d')
+        if (!context) return
+        context.save()
+        context.globalCompositeOperation = 'source-over'
+        while (gain > 1.001) {
+            const alpha = Math.min(1, gain - 1)
+            context.globalAlpha = alpha
+            context.drawImage(canvas, 0, 0)
+            gain /= 1 + alpha
         }
         context.restore()
     }
 
     /**
-     * Cached halving canvases ending at roughly GLOW_BLUR_PX CSS pixels wide;
-     * rebuilt when the main canvas is resized. The upscale from the last one
-     * is the bloom's blur radius.
+     * Cached halving canvases with a fixed CSS-pixel reduction factor. The
+     * blur must not grow with canvas width: that washed wide titles into fog.
      */
     private resolveGlowChain(deviceWidth: number, deviceHeight: number): HTMLCanvasElement[] {
         if (this.glowChainWidth === deviceWidth && this.glowChainHeight === deviceHeight && this.glowChain.length > 0) return this.glowChain
         const chain: HTMLCanvasElement[] = []
         let width = deviceWidth
         let height = deviceHeight
-        const targetWidth = Math.max(2, GLOW_BLUR_PX * this.scale)
-        while (width > targetWidth && chain.length < 6) {
+        const levels = Math.ceil(Math.log2(Math.max(2, GLOW_BLUR_PX * this.scale)))
+        while (chain.length < levels && width > 1 && height > 1) {
             width = Math.max(1, Math.floor(width / 2))
             height = Math.max(1, Math.floor(height / 2))
             const canvas = createEl('canvas')
@@ -990,19 +1117,23 @@ export class ParticleWordmarkEngine {
     private gradientFrameFill(context: CanvasRenderingContext2D, time: number): CanvasGradient | string {
         const a = this.colorA
         const b = this.colorB
+        // Frequency controls motion only; dwell time is measured in real seconds.
+        time = pausedAnimationTime(time, this.gradientFrequency, this.gradientPause,
+            this.gradientAnimation === 'breathe' ? BREATHE_BASE_PERIOD / 2 : CYCLE_BASE_PERIOD)
         if (this.gradientAnimation === 'breathe') return lerpFillString(a, b, breatheMix(time))
         // CSS convention: 0° points up, 90° right, 180° down (the default).
         const angle = (this.gradientAngle * Math.PI) / 180
         const dx = Math.sin(angle)
         const dy = -Math.cos(angle)
-        const centerX = this.cssWidth / 2
-        const centerY = this.cssHeight / 2
-        // Projection half-span of the canvas corners onto the gradient
-        // direction: the axis below covers the whole canvas.
-        const extent = (this.cssWidth / 2) * Math.abs(dx) + (this.cssHeight / 2) * Math.abs(dy)
+        const centerX = this.gradientAxis?.centerX ?? this.cssWidth / 2
+        const centerY = this.gradientAxis?.centerY ?? this.cssHeight / 2
+        // Project actual home positions onto the angle, rather than the large
+        // canvas or its empty bounding-box corners. Small color bands then
+        // reach real ink. Cache at sampling time so motion cannot move the anchor.
+        const extent = this.gradientAxis?.extent ?? ((this.cssWidth / 2) * Math.abs(dx) + (this.cssHeight / 2) * Math.abs(dy))
         const length = extent * 2
         if (this.gradientAnimation === 'cycle') {
-            // The alternating stops repeat every `length`, so a 3-period axis
+            // The color band repeats every `length`, so a 3-period axis
             // shifted by up to one period still covers the canvas: the scroll
             // loops seamlessly at CYCLE_BASE_PERIOD / frequency seconds.
             const offset = ((time / CYCLE_BASE_PERIOD) % 1) * length
@@ -1012,12 +1143,24 @@ export class ParticleWordmarkEngine {
                 centerX + dx * (extent + length + offset),
                 centerY + dy * (extent + length + offset),
             )
-            for (let i = 0; i <= 6; i++) gradient.addColorStop(i / 6, i % 2 === 0 ? rgbFillString(a) : rgbFillString(b))
+            const halfBlend = Math.min(this.gradientArea, 1 - this.gradientArea) * this.gradientTransition / 2
+            const left = (1 - this.gradientArea) / 2
+            const right = (1 + this.gradientArea) / 2
+            for (let i = 0; i < 3; i++) {
+                gradient.addColorStop(i / 3, rgbFillString(a))
+                gradient.addColorStop((i + left - halfBlend) / 3, rgbFillString(a))
+                gradient.addColorStop((i + left + halfBlend) / 3, rgbFillString(b))
+                gradient.addColorStop((i + right - halfBlend) / 3, rgbFillString(b))
+                gradient.addColorStop((i + right + halfBlend) / 3, rgbFillString(a))
+                gradient.addColorStop((i + 1) / 3, rgbFillString(a))
+            }
             return gradient
         }
         const gradient = context.createLinearGradient(centerX - dx * extent, centerY - dy * extent, centerX + dx * extent, centerY + dy * extent)
-        gradient.addColorStop(0, rgbFillString(a))
-        gradient.addColorStop(1, rgbFillString(b))
+        const boundary = 1 - this.gradientArea
+        const halfBlend = Math.min(this.gradientArea, 1 - this.gradientArea) * this.gradientTransition
+        gradient.addColorStop(boundary - halfBlend, rgbFillString(a))
+        gradient.addColorStop(boundary + halfBlend, rgbFillString(b))
         return gradient
 
     }
@@ -1200,6 +1343,16 @@ function shadedFillString(base: RGB, factor: number): string {
 function breatheMix(time: number): number {
     const phase = ((time / BREATHE_BASE_PERIOD) % 1 + 1) % 1
     return (1 - Math.cos(phase * Math.PI * 2)) / 2
+}
+
+/** Freeze at each segment endpoint, then resume without a color/position jump. */
+function pausedAnimationTime(time: number, frequency: number, pause: number, segment: number): number {
+    if (pause === 0) return time * frequency
+    const duration = segment / frequency
+    const interval = duration + pause
+    const index = Math.floor(time / interval)
+    const elapsed = time - index * interval
+    return index * segment + Math.min(elapsed * frequency, segment)
 }
 
 /** Linear interpolation between the two gradient colors, as a fill string. */

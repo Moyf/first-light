@@ -5,7 +5,7 @@ export function resolveFileDisplayName(frontmatter: Record<string, unknown> | un
     for (const property of properties.split(',').map(value => value.trim()).filter(Boolean)) {
         if (!frontmatter || !Object.prototype.hasOwnProperty.call(frontmatter, property)) continue
         const rawValue = frontmatter[property]
-        const value = Array.isArray(rawValue) ? rawValue[0] : rawValue
+        const value: unknown = Array.isArray(rawValue) ? rawValue[0] : rawValue
         if (typeof value === 'string' && value.trim()) return value.trim()
         if (typeof value === 'number' && Number.isFinite(value)) return String(value)
         if (typeof value === 'boolean') return String(value)

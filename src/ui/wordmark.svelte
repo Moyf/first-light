@@ -4,6 +4,8 @@
     import { pluginSettingsStore } from '../store'
     import { getIcon } from 'obsidian'
     import type { HomeTabSettings } from 'src/settings'
+    import { svgLogoDataUrl } from '../utils/svgLogo'
+    import { OBSIDIAN_PARTICLE_PATHS, OBSIDIAN_OLD_PARTICLE_PATHS } from '../utils/obsidianParticleLogos'
 
     // Store-driven like ParticleWordmark: no props, so parent re-renders can
     // never invalidate this component and trigger spurious engine rebuilds.
@@ -21,6 +23,9 @@
 
     // Logo placement relative to the title (falls back to the original left layout)
     $: logoPosition = pluginSettings?.logoPosition ?? 'left'
+    $: pastedSvgUrl = svgLogoDataUrl(pluginSettings?.logo.svgCode ?? '')
+    $: useBuiltinParticleLogo = pluginSettings?.particleEffect && pluginSettings.particleEffectColorMode !== 'original'
+        && (pluginSettings.logoType === 'default' || pluginSettings.logoType === 'oldLogo')
 
     // Logo margins: one uniform value, or per side when individual adjustment is on
     $: logoMargins = {
@@ -46,7 +51,15 @@
         class:logo-right={logoPosition === 'right'}>
         {#if !(pluginSettings.logoType === 'none')}
             <div class="home-tab-logo" style:margin-top="{logoMargins.top}px" style:margin-right="{logoMargins.right}px" style:margin-bottom="{logoMargins.bottom}px" style:margin-left="{logoMargins.left}px">
-                {#if pluginSettings.logoType === 'default'}
+                {#if useBuiltinParticleLogo}
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        class="home-tab-builtin-particle-logo"
+                        style="width: calc({pluginSettings.fontSize} * {pluginSettings.logoScale}); height: calc({pluginSettings.fontSize} * {pluginSettings.logoScale});"
+                        viewBox={pluginSettings.logoType === 'oldLogo' ? '0 0 65 100' : '0 0 24 24'}
+                        fill="currentColor">
+                        {@html pluginSettings.logoType === 'oldLogo' ? OBSIDIAN_OLD_PARTICLE_PATHS : OBSIDIAN_PARTICLE_PATHS}
+                    </svg>
+                {:else if pluginSettings.logoType === 'default'}
                     <!-- New obsidian logo. Size via inline CSS calc(): SVG
                          width/height ATTRIBUTES with calc() are ignored by
                          WebKit (mobile), which collapses the auto-sized svg
@@ -142,6 +155,10 @@
                         <img src="{pluginSettings.logo.imageLink}" alt="home-tab-logo"
                             style="max-width: calc({pluginSettings.fontSize}*{pluginSettings.logoScale});
                                 max-height: calc({pluginSettings.fontSize}*{pluginSettings.logoScale});">
+                {:else if pluginSettings.logoType === 'svgCode' && pastedSvgUrl}
+                        <img src={pastedSvgUrl} alt="home-tab-logo"
+                            style="width: calc({pluginSettings.fontSize}*{pluginSettings.logoScale});
+                                height: calc({pluginSettings.fontSize}*{pluginSettings.logoScale}); object-fit: contain;">
                 {/if}
             </div>
         {/if}
@@ -169,6 +186,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+    /* Page spacing belongs outside the rasterized box, so canvas zoom only
+       enlarges the logo/title and their user-configured margins. */
+    :global(.home-tab-wordmark-wrapper){
         margin-bottom: 50px;
     }
     /* Logo placement: top/bottom stack the layout, right/bottom move the logo after the title */
@@ -181,8 +202,8 @@
     }
     /* Standalone home tabs reserve vertical space for the title; embedded
        views and the settings preview (no .home-tab ancestor) stay compact */
-    :global(.home-tab:not(.embedded)) .home-tab-wordmark-container{
-        padding-top: 100px;
+    :global(.home-tab:not(.embedded) .home-tab-wordmark-wrapper){
+        margin-top: 100px;
     }
     .home-tab-wordmark h1{
         margin: unset;
@@ -199,8 +220,8 @@
         }
     }
     @media(max-height: 1000px){
-        :global(.home-tab:not(.embedded)) .home-tab-wordmark-container{
-            padding-top: 10px;
+        :global(.home-tab:not(.embedded) .home-tab-wordmark-wrapper){
+            margin-top: 10px;
         }
     }
 </style>

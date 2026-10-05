@@ -132,9 +132,8 @@ export default class HomeTabSearchBar{
                 this.fileSuggester.close();
                 this.fileSuggester.destroy();
                 this.setSuggester(new WebViewerSuggester(this.plugin.app, this.plugin, this.view, this));
+                void this.fileSuggester.onInput();
             }
-            // 更新建议
-            void this.fileSuggester.onInput();
         }
         // 如果不是 URL 但当前是 WebViewerSuggester，切换回默认建议器
         else if (this.fileSuggester instanceof WebViewerSuggester) {
@@ -145,10 +144,8 @@ export default class HomeTabSearchBar{
             // 更新建议
             void this.fileSuggester.onInput();
         }
-        // 如果建议器类型没变，直接调用 onInput
-        else {
-            void this.fileSuggester.onInput();
-        }
+        // An unchanged suggester owns the debounced input/composition listener.
+        // Calling it here as well bypasses searchDelay and starts duplicate searches.
     }
 
     /**
@@ -306,14 +303,15 @@ export default class HomeTabSearchBar{
                 }
                 break;
             case 'fileExtension':
-            case 'fileType':
+            case 'fileType': {
                 const fileSuggester = new HomeTabFileSuggester(this.plugin.app, this.plugin, this.view, this)
                 this.setSuggester(fileSuggester)
-                fileSuggester.setFileFilter(canonicalFilterKey as FileType | FileExtension)
+                fileSuggester.setFileFilter(canonicalFilterKey)
                 filterEl.toggleClass('hide', false)
                 filterEl.setText(canonicalFilterKey)
                 void this.fileSuggester.onInput();
                 break;
+            }
             case 'folder':
                 filterEl.toggleClass('hide', false)
                 filterEl.setText(canonicalFilterKey)

@@ -2,22 +2,54 @@
 
 ## [Unreleased]
 
-### Improvements
+## [1.10.0](https://github.com/Moyf/harbor-tab/compare/1.9.0...1.10.0) - 2026-10-05
 
-- Compact file items now share centered, wrapping rows instead of a single column.
-- Recent files and bookmarks use the same centered layout on narrow screens.
-- Rename Layout to General display and add ordered display-name properties, defaulting to `title`, with list-first-value and file-name fallbacks.
-- Reduce Transparent search size and explicitly remove backdrop blur; add the smaller, square-cornered, borderless Minimal search style.
-- Reduce Modern search height, font, and button size, and replace the thin border with a thicker translucent outer ring.
+### ⚡ Changed
+
+- **Default appearance**: Match the tuned particle colors, animation, sizing, logo/title spacing, and compact centered rows on fresh installations; keep periodic notes and vault stats disabled and custom image sources empty.
+- **SVG logo input**: Add an SVG code logo option with a multiline input, document validation, and image rendering compatible with particle effects.
+- **Particle logo facets**: Use separated-facet SVGs for the modern and old Obsidian logos in non-original particle color modes, preserving their facets instead of sampling solid masses.
+- **Particle settings**: Split Style into Color and Effects, and rename Particle color to Base color.
+- **Gradient controls**: Add a color area slider (10–90%, default 15%) and transition range slider (0–100%, default 30%) for static and cycling colors.
+- **Glow and particle sizing**: Keep crisp cores with translucent outer halos, normalize glow for particle density, and preserve gaps around glyph edges. Spacing is 1–3 (step 0.1) and size is 0.2–1 (step 0.05), including safe rendering of older values.
+- **Adaptive size and gradient anchors**: Add optional Adaptive particle size with a 0.2 minimum radius; uniform radii remain the default. Anchor gradients to actual particles and keep page spacing outside the zoomed canvas. Move Selection highlight below Particle effect.
+- **Canvas padding**: Add independent top/bottom sliders (0–150px per side, step 5, defaults 40px/40px), preserve existing shared values, grow the preview to fit, and clear the full bitmap to prevent fractional-pixel color fringes.
+- **Color animation pauses**: Add Pause interval below frequency for Cycling gradient and Breathing light (0–10 seconds, default 0): pause after each loop or hold each breathing color, independently of frequency.
+
+- **Aligned grid**: Recent files and bookmarks support at most four equal-width columns, including Compact mode within the 900px list width; narrow panes use fewer columns. Centered rows remain the default.
+
+- **Search dropdowns**: Default to Overlay in standalone and embedded views, escaping block boundaries; Expand height remains available for inline results.
+- **Search stability**: Keep unmatched queries in a stable empty state, update results atomically, and discard searches superseded by newer input or dismissal.
+- **Particle resize recovery**: Preserve animations during resize bursts and resample the latest settled size instead of destroying the effect.
+
+- **Compact and narrow layouts**: Share centered, wrapping rows across recent files and bookmarks, including narrow panes.
+- **Display names**: Rename Layout to Display and add ordered properties, defaulting to `title`, with list-first-value and file-name fallbacks.
+- **Search styles**: Reduce Transparent size and remove blur, add the smaller square-cornered borderless Minimal style, and refine Modern with smaller dimensions and a thick translucent outer ring.
 
 <details>
 <summary>中文说明（点击展开）</summary>
 
-- Compact 文件项目改为居中横向排列，支持一行多个并自动换行。
-- 窄屏下最近文件和书签统一使用居中布局。
-- 「布局」改名为「通用显示」，新增属性显示名，默认 `title`，支持依次回退、列表取首值和文件名兜底。
-- 缩小 Transparent 搜索框并移除背景模糊；新增更小、直角、无边框的 Minimal 搜索样式。
-- 缩小 Modern 搜索框、字号和按钮，以较厚的半透明外圈替代细边框。
+### ⚡ 变更
+
+- **默认外观**：新安装采用调整后的粒子颜色、动画、大小、Logo/标题间距和紧凑居中排列；周期笔记和库统计仍默认关闭，自定义图片来源为空。
+- **SVG Logo 输入**：新增「SVG 代码」选项，支持多行粘贴、文档校验，并以图像方式渲染，兼容粒子效果。
+- **粒子 Logo 切面**：内置的新旧 Obsidian Logo 在非原始颜色的粒子模式下均改用切面分离 SVG，保留切面轮廓，避免实心颗粒糊成一团。
+- **粒子设置**：将「样式」拆为「颜色」和「效果」，「粒子颜色」改为「基础颜色」。
+- **渐变控制**：静态和循环渐变新增颜色占比滑块（10%–90%，默认 15%）及过渡范围滑块（0%–100%，默认 30%）。
+- **辉光与颗粒大小**：保留清晰核心与半透明外部光晕，按粒子密度补偿亮度，字形边缘保留间隙。间距为 1–3、步长 0.1，大小为 0.2–1、步长 0.05，旧参数同样安全渲染。
+- **自适应大小与渐变定位**：新增可选的「自适应粒子大小」，半径最小 0.2，默认仍使用统一半径。渐变按实际粒子定位，页面留白移至缩放画布外。「选中高亮」移至「粒子效果」下方。
+- **画布留白**：新增独立上下滑块（每侧 0–150px、步长 5，默认上下各 40px），保留旧值，预览随画布增高；清理完整位图，避免非整数像素的颜色残留。
+- **颜色停歇**：循环渐变和呼吸灯在频率下方新增「停歇间隔」（0–10 秒、默认 0），每轮循环后停歇或在每个颜色停留，时长不受频率影响。
+
+- **网格对齐**：最近文件和书签最多四列，Compact 模式在 900px 列表内也能显示四列，窄屏自动减少列数，默认保留居中排列。
+
+- **搜索下拉列表**：默认「叠加覆盖」，独立标签页和嵌入块均生效，可超出 block 边界，仍可选择「拓展高度」。
+- **搜索稳定性**：无匹配查询显示稳定空状态，结果直接更新，过期或已关闭的搜索不再弹回。
+- **粒子尺寸恢复**：频繁尺寸变化时保留动画，布局稳定后更新采样，不再销毁特效。
+
+- **紧凑与窄屏排列**：最近文件和书签统一采用居中、横向换行排列，窄屏也保持一致。
+- **显示名**：「布局」改为「显示」，新增属性显示名，默认 `title`，支持依次回退、列表取首值和文件名兜底。
+- **搜索样式**：缩小 Transparent 并移除模糊，新增更小、直角、无边框的 Minimal；Modern 缩小尺寸，并采用较厚的半透明外圈。
 
 </details>
 

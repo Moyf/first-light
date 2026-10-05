@@ -1,3 +1,33 @@
+.home-tab-view-content{
+    scrollbar-gutter: stable;
+}
+
+.home-tab-search-overlay{
+    z-index: var(--layer-menu, 1000);
+}
+.home-tab-search-overlay[data-popper-reference-hidden]{
+    visibility: hidden;
+    pointer-events: none;
+}
+.home-tab-search-overlay .home-tab-suggestion-container{
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+}
+.home-tab-searchbar-container.home-tab-search-overlay .home-tab-suggestion-container{
+    margin-top: 0;
+}
+.home-tab-search-overlay .suggestion{
+    max-height: min(400px, 50vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.home-tab-search-empty-state{
+    padding: var(--size-4-3) var(--size-4-4);
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
 .home-tab-suggestion-description, .home-tab-suggestion-filepath, .home-tab-suggestion-tip{
     display: flex;
     align-items: center;
@@ -192,4 +222,27 @@
     flex-direction: column;
     align-items: stretch;
     gap: var(--size-2-3);
+}
+.home-tab-svg-source {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.home-tab-svg-source .setting-item-info {
+    width: 100%;
+    flex: none;
+}
+
+.home-tab-svg-source .setting-item-control {
+    min-width: 0;
+    width: 100%;
+    flex: 1;
+}
+
+.home-tab-svg-source textarea {
+    width: 100%;
+    flex: 1;
+    min-height: 140px;
+    font-family: var(--font-monospace);
+    resize: vertical;
 }

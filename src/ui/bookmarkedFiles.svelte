@@ -263,6 +263,7 @@
     {#if !sectionCollapsed}
         <div class="home-tab-bookmarked-files-list"
             class:compact={pluginSettings.compactMode}
+            class:grid={pluginSettings.fileListLayout === 'grid'}
             bind:this={listWrapperEl}
             tabindex="-1"
             on:keydown={handleListKeydown}
@@ -271,6 +272,7 @@
             {#each filteredFileList as item (item.file.path)}
                 <FileDisplayItem file={item.file} customIcon={item.iconId} {app} {pluginSettings} {contextualMenu}
                 selected={filteredFileList.indexOf(item) === selectedFileIndex}
+                gridAligned={pluginSettings.fileListLayout === 'grid'}
                 on:itemMenu={(e) => selectedFile = e.detail.file}/>
             {/each}
         </div>
@@ -400,12 +402,26 @@
         gap: 6px 8px;
     }
 
+    .home-tab-bookmarked-files-list.grid{
+        --home-tab-grid-item-width: 125px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, max(var(--home-tab-grid-item-width), calc((100% - 24px) / 4))), 1fr));
+        gap: 6px 8px;
+        align-items: stretch;
+    }
+    .home-tab-bookmarked-files-list.grid.compact{
+        --home-tab-grid-item-width: 200px;
+    }
+
     @media(max-width: 600px){
         .home-tab-bookmarked-files-container{
             width: 90%;
         }
         .home-tab-bookmarked-files-list{
             gap: 6px 8px;
+        }
+        .home-tab-bookmarked-files-list.grid{
+            --home-tab-grid-item-width: 200px;
         }
     }
 </style>

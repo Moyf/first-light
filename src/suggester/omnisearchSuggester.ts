@@ -67,7 +67,8 @@ export default class OmnisearchSuggester extends TextInputSuggester<ResultNoteAp
         // Open file in new tab
         this.scope.register(['Mod'], 'Enter', (e) => {
             e.preventDefault()
-            this.useSelectedItem(this.suggester.getSelectedItem(), true)
+            const selectedItem = this.suggester.getSelectedItem()
+            if (selectedItem) this.useSelectedItem(selectedItem, true)
         })
     }
 
@@ -76,7 +77,7 @@ export default class OmnisearchSuggester extends TextInputSuggester<ResultNoteAp
     }
 
     onOpen(): void {
-        this.updateSearchBarContainerEl(this.suggester.getSuggestions().length > 0 ? true : false)    
+        this.updateSearchBarContainerEl(true)
     }
 
     onClose(): void {

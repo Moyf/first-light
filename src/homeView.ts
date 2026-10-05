@@ -42,7 +42,7 @@ export class EmbeddedHomeTab extends MarkdownRenderChild{
     onunload(): void {
         this.plugin.activeEmbeddedHomeTabViews.splice(this.plugin.activeEmbeddedHomeTabViews.findIndex(item => item.view == this.view),1)
         this.searchBar.dispose()
-        this.searchBar.fileSuggester.close()
+        this.searchBar.fileSuggester.destroy()
         this.homepage.$destroy()
     }
 
@@ -96,6 +96,7 @@ export class HomeTabView extends FileView{
     }
 
     async onOpen(): Promise<void> {
+        this.contentEl.addClass('home-tab-view-content')
         this.homepage = new Homepage({
             target: this.contentEl,
             props:{
@@ -112,6 +113,7 @@ export class HomeTabView extends FileView{
     }
 
     async onClose(): Promise<void>{
+        this.contentEl.removeClass('home-tab-view-content')
         this.searchBar.dispose()
         this.searchBar.fileSuggester.destroy()  // 使用 destroy() 而不是 close()
         this.homepage.$destroy();

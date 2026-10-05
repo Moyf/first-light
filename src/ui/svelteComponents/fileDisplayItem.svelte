@@ -23,6 +23,7 @@
     export let pending: boolean = false
     // Text-only item (e.g. periodic notes): renders no file type / custom icon
     export let showIcon: boolean = true
+    export let gridAligned: boolean = false
 
     let metadataRevision = 0
     // The revision makes metadata edits refresh the label without reopening the tab.
@@ -64,6 +65,7 @@
 <div class="home-tab-file-item" class:use-accent-color="{pluginSettings.selectionHighlight === 'accentColor'}"
     class:selected="{selected}"
     class:compact={pluginSettings.compactMode}
+    class:grid={gridAligned}
     class:has-menu={showMenuButton}
     class:has-pending={pending}
     on:mousedown|preventDefault="{e => handleMouseClick(e, file)}">
@@ -286,5 +288,13 @@
             width: 14px;
             height: 14px;
         }
+    }
+    .home-tab-file-item.grid{
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        margin: 0;
+        height: 100%;
+        box-sizing: border-box;
     }
 </style>
