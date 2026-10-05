@@ -23,8 +23,11 @@
 
     // Logo placement relative to the title (falls back to the original left layout)
     $: logoPosition = pluginSettings?.logoPosition ?? 'left'
+    // Use the tuned default logo base, independently of the title's font size.
+    $: logoSize = `calc(3.5em * ${pluginSettings?.logoScale ?? 1.5})`
     $: pastedSvgUrl = svgLogoDataUrl(pluginSettings?.logo.svgCode ?? '')
     $: useBuiltinParticleLogo = pluginSettings?.particleEffect && pluginSettings.particleEffectColorMode !== 'original'
+        && pluginSettings.particleEffectPreserveShading === false
         && (pluginSettings.logoType === 'default' || pluginSettings.logoType === 'oldLogo')
 
     // Logo margins: one uniform value, or per side when individual adjustment is on
@@ -54,7 +57,7 @@
                 {#if useBuiltinParticleLogo}
                     <svg xmlns="http://www.w3.org/2000/svg"
                         class="home-tab-builtin-particle-logo"
-                        style="width: calc({pluginSettings.fontSize} * {pluginSettings.logoScale}); height: calc({pluginSettings.fontSize} * {pluginSettings.logoScale});"
+                        style="width: {logoSize}; height: {logoSize};"
                         viewBox={pluginSettings.logoType === 'oldLogo' ? '0 0 65 100' : '0 0 24 24'}
                         fill="currentColor">
                         {@html pluginSettings.logoType === 'oldLogo' ? OBSIDIAN_OLD_PARTICLE_PATHS : OBSIDIAN_PARTICLE_PATHS}
@@ -64,7 +67,7 @@
                          width/height ATTRIBUTES with calc() are ignored by
                          WebKit (mobile), which collapses the auto-sized svg
                          to zero and makes the logo invisible. -->
-                    <svg style="width: calc({pluginSettings.fontSize} * {pluginSettings.logoScale}); height: calc({pluginSettings.fontSize} * {pluginSettings.logoScale});" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg style="width: {logoSize}; height: {logoSize};" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <defs>
                           <!-- If gradient id is not unique the logo is not rendered correctly -->
                           <radialGradient id="{gradientUniqueId.toString()}-b" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-48 -185 123 -32 179 429.7)">
@@ -122,7 +125,7 @@
                 {:else if pluginSettings.logoType === 'oldLogo'}
                     <!-- Old obsidian logo (sized via inline CSS, see above) -->
                     <svg viewBox="0 0 65 100"
-                    style="width: calc({pluginSettings.fontSize} * {pluginSettings.logoScale}); height: calc({pluginSettings.fontSize} * {pluginSettings.logoScale});">
+                    style="width: {logoSize}; height: {logoSize};">
                         <defs>
                             <!-- If gradient id is not unique the logo is not rendered correctly -->
                             <linearGradient id="{gradientUniqueId.toString()}" x1="82.85" y1="30.41" x2="51.26" y2="105.9"
@@ -141,7 +144,7 @@
                     </svg>
 
                 {:else if pluginSettings.logoType === 'lucideIcon' && !!pluginSettings.logo.lucideIcon}
-                        <svg xmlns="http://www.w3.org/2000/svg" style="width: calc({pluginSettings.fontSize} * {pluginSettings.logoScale}); height: calc({pluginSettings.fontSize} * {pluginSettings.logoScale});"
+                        <svg xmlns="http://www.w3.org/2000/svg" style="width: {logoSize}; height: {logoSize};"
                         viewBox="0 0 24 24" fill="none" stroke="{pluginSettings.iconColorType === 'default' ? 'currentColor' : pluginSettings.iconColorType === 'accentColor' ?  'var(--interactive-accent)' : (pluginSettings.iconColor || 'currentColor')}"
                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                         class="svg-icon lucide-{pluginSettings.logo.lucideIcon}">
@@ -149,16 +152,13 @@
                         </svg>
                 {:else if pluginSettings.logoType === 'imagePath' && !!pluginSettings.logo.imagePath}
                         <img src="{vaultAdapter.getResourcePath(pluginSettings.logo.imagePath)}" alt="home-tab-logo"
-                            style="max-width: calc({pluginSettings.fontSize}*{pluginSettings.logoScale});
-                                    max-height: calc({pluginSettings.fontSize}*{pluginSettings.logoScale});">
+                            style="max-width: {logoSize}; max-height: {logoSize};">
                 {:else if pluginSettings.logoType === 'imageLink' && !!pluginSettings.logo.imageLink}
                         <img src="{pluginSettings.logo.imageLink}" alt="home-tab-logo"
-                            style="max-width: calc({pluginSettings.fontSize}*{pluginSettings.logoScale});
-                                max-height: calc({pluginSettings.fontSize}*{pluginSettings.logoScale});">
+                            style="max-width: {logoSize}; max-height: {logoSize};">
                 {:else if pluginSettings.logoType === 'svgCode' && pastedSvgUrl}
                         <img src={pastedSvgUrl} alt="home-tab-logo"
-                            style="width: calc({pluginSettings.fontSize}*{pluginSettings.logoScale});
-                                height: calc({pluginSettings.fontSize}*{pluginSettings.logoScale}); object-fit: contain;">
+                            style="width: {logoSize}; height: {logoSize}; object-fit: contain;">
                 {/if}
             </div>
         {/if}

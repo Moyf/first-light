@@ -52,9 +52,32 @@ for (const scale of [2, 2.1, 2.25, 2.5, 2.75, 3]) {
                     'Legacy sizes must keep air between particles');
                 assert.match(particle.fill, /^rgb\(\d+, \d+, \d+\)$/);
                 if (colorMode === 'original') assert.equal(particle.fill, 'rgb(35, 100, 220)');
+                else assert.equal(particle.fill, 'rgb(45, 207, 210)');
             }
             cases++;
         }
+    }
+}
+// Source luminance is optional: off gives the exact tint; on retains legacy shading.
+for (const [color, expected] of [['#ffffff', 'rgb(255, 255, 255)'], ['#4696c8', 'rgb(70, 150, 200)'], ['#000000', 'rgb(0, 0, 0)']]) {
+    const engine = new ParticleWordmarkEngine(containerStub, { colorMode: 'monochrome', color, color2: '#ffffff', preserveShading: false, zoom: 1, spacing: 1,
+        dotSize: 0.4, canvasPaddingTop: 0, canvasPaddingBottom: 0 });
+    for (const rgb of [[0,0,0], [35,100,220], [255,255,255]]) {
+        const pixels = data.slice();
+        for (let i = 0; i < pixels.length; i += 4) if (pixels[i + 3]) pixels.set(rgb, i);
+        const particles = engine.sampleParticles({ width, height }, { getImageData: () => ({ data: pixels }) });
+        assert.ok(particles.length > 0);
+        assert.ok(particles.every(p => p.fill === expected), 'The source color must not darken or brighten Base color');
+    }
+}
+for (const preserveShading of [undefined, true, false]) {
+    const engine = new ParticleWordmarkEngine(containerStub, { colorMode: 'monochrome', color: '#4696c8', color2: '#ffffff', preserveShading,
+        zoom: 1, spacing: 1, dotSize: 0.4 });
+    for (const [value, shaded] of [[0, 'rgb(42, 90, 120)'], [128, 'rgb(70, 150, 200)'], [255, 'rgb(98, 210, 255)']]) {
+        const pixels = data.slice();
+        for (let i = 0; i < pixels.length; i += 4) if (pixels[i + 3]) pixels.set([value,value,value], i);
+        const particles = engine.sampleParticles({ width, height }, { getImageData: () => ({ data: pixels }) });
+        assert.ok(particles.every(p => p.fill === (preserveShading === false ? 'rgb(70, 150, 200)' : shaded)));
     }
 }
 // Inspect actual color contribution, geometry and seamless cycling.
@@ -119,6 +142,7 @@ const snapshot = value => JSON.parse(JSON.stringify(value, (_, item) =>
 for (const frequency of [0.25, 1, 4]) {
     const fill = (animation, time, pause = 3) => snapshot(gradient(animation, 60, 90, time, 30, pause, frequency));
     const cycleDuration = 6 / frequency;
+    assert.equal(fill('cycle', cycleDuration + 1), 'rgb(0, 0, 0)', 'The complete dwell is pure Base color');
     assert.deepEqual(fill('cycle', cycleDuration), fill('cycle', cycleDuration + 2.9));
     assert.deepEqual(fill('cycle', cycleDuration + 3), fill('cycle', 0));
     assert.notDeepEqual(fill('cycle', cycleDuration + 3.2), fill('cycle', 0));
@@ -136,7 +160,60 @@ for (const frequency of [0.25, 1, 4]) {
         assert.equal(fill('breathe', time, 0), gradient('breathe', 60, 90, time * frequency, 30));
     }
 }
+// The entire band, including a soft edge at maximum area, starts/ends off ink.
+for (const area of [10, 30, 90]) {
+    for (const transition of [0, 60, 100]) {
+        for (const angle of [0, 45, 90, 180, 315]) {
+            assert.equal(gradient('cycle', transition, angle, 0, area, 3), 'rgb(0, 0, 0)');
+            assert.equal(gradient('cycle', transition, angle, 6.01, area, 3), 'rgb(0, 0, 0)');
+            const middle = gradient('cycle', transition, angle, 3, area, 3);
+            const start = middle.coordinates.slice(0, 2), end = middle.coordinates.slice(2);
+            const midpoint = start.map((value, i) => (value + end[i]) / 2);
+            assert.ok(Math.abs(midpoint[0] - 100) < 1e-9 && Math.abs(midpoint[1] - 50) < 1e-9,
+                'A single flash band crosses the ink center halfway through the sweep');
+            assert.equal(middle.stops.length, 4, 'Only one band sweeps across the particles');
+            assert.equal(middle.stops[0].color, 'rgb(0, 0, 0)');
+            assert.equal(middle.stops.at(-1).color, 'rgb(0, 0, 0)');
+            assert.equal(middle.stops[1].color, 'rgb(255, 255, 255)');
+        }
+    }
+}
 assert.equal(gradient('breathe', 0), gradient('breathe', 100), 'Breathing is a solid fill and ignores spatial range');
+// Gradient shading uses a bounded palette, including solid breathing and paused Base color.
+for (const animation of ['static', 'cycle', 'breathe']) {
+    const engine = new ParticleWordmarkEngine(containerStub, { colorMode: 'gradient', color: '#4696c8', color2: '#ffffff',
+        gradientAnimation: animation, gradientPause: 3, zoom: 1, spacing: 1, dotSize: 0.4 });
+    const pixels = data.slice();
+    for (let i = 0; i < pixels.length; i += 4) if (pixels[i + 3]) {
+        const value = i % 8 ? 255 : 0;
+        pixels.set([value,value,value], i);
+    }
+    const particles = engine.sampleParticles({ width, height }, { getImageData: () => ({ data: pixels }) });
+    const context = { createLinearGradient() { return { stops: [], addColorStop(position, color) { this.stops.push({ position, color }); } }; } };
+    const palette = engine.gradientFramePalette(context, animation === 'breathe' ? 0 : 7);
+    assert.ok(Array.isArray(palette));
+    assert.ok(palette.filter(Boolean).length <= 17, 'Palette cost is bounded independently of particle count');
+    assert.ok(particles.some(p => p.shadeIndex === 0) && particles.some(p => p.shadeIndex === 16));
+    if (animation === 'static') {
+        assert.equal(palette[0].stops[0].color, 'rgb(42, 90, 120)');
+        assert.equal(palette[16].stops[0].color, 'rgb(98, 210, 255)');
+        assert.equal(palette[0].stops.at(-1).color, 'rgb(153, 153, 153)');
+    } else {
+        assert.equal(palette[0], 'rgb(42, 90, 120)');
+        assert.equal(palette[16], 'rgb(98, 210, 255)');
+    }
+    // Every motion renderer must choose the matching shade, not the raw gradient.
+    const draw = { fillStyle: null, seen: [], fillRect() { this.seen.push(this.fillStyle); } };
+    const sample = [particles.find(p => p.shadeIndex === 0), particles.find(p => p.shadeIndex === 16)];
+    for (const method of ['renderStatic','renderWave','renderFloat','renderUndulate','renderRadialScale','renderHeartbeat','renderRipple']) {
+        draw.seen.length = 0;
+        if (method === 'renderStatic') engine[method](draw, sample, palette);
+        else engine[method](draw, sample, 1, palette);
+        assert.deepEqual(draw.seen, [palette[0], palette[16]]);
+    }
+    engine.options.preserveShading = false;
+    assert.ok(!Array.isArray(engine.gradientFramePalette(context, 7)), 'Off retains one direct gradient fill');
+}
 // Canvas whitespace and pointer motion must not move the spatial color anchor.
 for (const angle of [0, 45, 90, 180, 315]) {
     const engine = new ParticleWordmarkEngine(containerStub, { color: '#000000', color2: '#ffffff', zoom: 2,
@@ -192,46 +269,6 @@ for (const scale of [1, 2.25, 3]) {
         }
     }
 }
-// A wide canvas must not produce a wider halo. Core brightness uses the exact
-// sharp image; translucent outer halos go underneath with bounded strength.
-const normalization = [];
-sandbox.createEl = () => ({ getContext: () => ({ clearRect() {}, save() {}, restore() {}, drawImage() {
-    if (this.globalCompositeOperation === 'source-over') normalization.push(this.globalAlpha);
-} }) });
-const glowEngine = new ParticleWordmarkEngine(containerStub, { color: '#000000', color2: '#ffffff', zoom: 1, glow: 1 });
-glowEngine.scale = 2;
-assert.equal(glowEngine.resolveGlowChain(640, 320).at(-1).width, 40);
-assert.equal(glowEngine.resolveGlowChain(1280, 640).at(-1).width, 80);
-const cached = glowEngine.resolveGlowChain(1280, 640);
-assert.equal(glowEngine.resolveGlowChain(1280, 640), cached);
-glowEngine.canvas = { width: 1280, height: 640 };
-const passes = [];
-glowEngine.applyGlow({ save() {}, restore() {}, setTransform() {}, drawImage() {
-    passes.push({ mode: this.globalCompositeOperation, alpha: this.globalAlpha });
-} });
-assert.deepEqual(passes, [{ mode: 'screen', alpha: 0.65 }, { mode: 'destination-over', alpha: 0.25 }, { mode: 'destination-over', alpha: 0.55 }]);
-assert.deepEqual(normalization, [1, 1, 1, 1], '100% glow compensates a 25% dot coverage without raising final opacity');
-normalization.length = 0;
-passes.length = 0;
-glowEngine.glow = 0.5;
-glowEngine.applyGlow({ save() {}, restore() {}, setTransform() {}, drawImage() {
-    passes.push({ mode: this.globalCompositeOperation, alpha: this.globalAlpha });
-} });
-assert.deepEqual(passes, [{ mode: 'screen', alpha: 0.325 }, { mode: 'destination-over', alpha: 0.125 }, { mode: 'destination-over', alpha: 0.275 }]);
-assert.deepEqual(normalization, [0.75, 0.75], 'Low strengths use less compensation');
-normalization.length = 0;
-passes.length = 0;
-glowEngine.glow = 0;
-glowEngine.applyGlow({ drawImage() { assert.fail('Disabled glow must skip drawing'); } });
-assert.equal(passes.length, 0);
-assert.equal(normalization.length, 0);
-glowEngine.glow = 1;
-glowEngine.glowDensity = 1;
-glowEngine.applyGlow({ save() {}, restore() {}, setTransform() {}, drawImage() {} });
-assert.equal(normalization.length, 0, 'Solid coverage must not get the gain used by sparse particles');
-glowEngine.glowDensity = 0.01;
-glowEngine.applyGlow({ save() {}, restore() {}, setTransform() {}, drawImage() {} });
-assert.equal(normalization.length, 10, 'Extremely sparse gain remains bounded to five small-buffer passes per layer');
 // Vertical safety space is per-side CSS pixels, not multiplied by zoom, and
 // does not change the gradient's span or the particles' horizontal positions.
 for (const [value, expected] of [[undefined, 50], [NaN, 50], [-5, 0], [0, 0], [50, 50], [200, 150]]) {
@@ -270,4 +307,4 @@ renderEngine.renderContext = { save() { clearing.push('save'); }, setTransform(.
     clearRect(...values) { clearing.push(values); }, restore() { clearing.push('restore'); } };
 renderEngine.render();
 assert.deepEqual(clearing, ['save', [1, 0, 0, 1, 0, 0], [0, 0, 226, 91], 'restore']);
-console.log(`Particle sampling passed: ${cases} scale/spacing/color cases, glyph boundaries, gradient area/transition/loops and bounded glow.`);
+console.log(`Particle sampling passed: ${cases} scale/spacing/color cases, glyph boundaries, gradient area/transition/loops.`);

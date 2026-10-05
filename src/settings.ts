@@ -67,6 +67,7 @@ export interface HomeTabSettings extends ObjectKeys{
     titleMarginLeft: number
     particleEffect: boolean
     particleEffectColorMode: 'original' | 'monochrome' | 'gradient'
+    particleEffectPreserveShading: boolean
     particleEffectColor: string
     particleEffectColorDark: string
     particleEffectColor2: string
@@ -79,7 +80,6 @@ export interface HomeTabSettings extends ObjectKeys{
     particleEffectGradientPause: number
     particleEffectAmbientMotion?: 'none' | 'wave' | 'float' | 'undulate' | 'pulse' | 'ripple' | 'breathe' // 新增：粒子的默认漂浮运动模式
     particleEffectMotionFrequency: number
-    particleEffectGlow: number
     particleEffectScale: number
     particleEffectScaleMobile: number
     particleEffectSpacing: number
@@ -89,7 +89,9 @@ export interface HomeTabSettings extends ObjectKeys{
     particleEffectCanvasPaddingBottom: number
     particleEffectDisturbRadius: number
     particleEffectDisturbStrength: number
+    particleEffectDisturbFalloff: number
     particleEffectRecoverySpeed: number
+    particleEffectRecoveryDamping: number
     maxResults: number
     showbookmarkedFiles: boolean
     showBookmarkedFilesFilter: boolean // 新增：书签区筛选按钮（放大镜）开关
@@ -186,6 +188,7 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     titleMarginLeft: 0,
     particleEffect: true,
     particleEffectColorMode: 'gradient',
+    particleEffectPreserveShading: true,
     particleEffectColor: '#a079ff',
     particleEffectColorDark: '#d6d1d1',
     particleEffectColor2: '#8965d7',
@@ -198,20 +201,21 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     particleEffectGradientPause: 0,
     particleEffectAmbientMotion: 'wave',
     particleEffectMotionFrequency: 0.55,
-    particleEffectGlow: 40,
-    particleEffectScale: 1.9,
+    particleEffectScale: 2,
     // Mobile renders at 1× so the zoomed canvas never overflows the narrow layout.
     particleEffectScaleMobile: 1,
-    particleEffectSpacing: 1.5,
-    particleEffectDotSize: 0.4,
+    particleEffectSpacing: 1.3,
+    particleEffectDotSize: 0.45,
     particleEffectAdaptiveSize: false,
     particleEffectCanvasPaddingTop: 40,
-    particleEffectCanvasPaddingBottom: 40,
-    particleEffectDisturbRadius: 124,
-    particleEffectDisturbStrength: 1.8,
+    particleEffectCanvasPaddingBottom: 0,
+    particleEffectDisturbRadius: 40,
+    particleEffectDisturbStrength: 1,
+    particleEffectDisturbFalloff: 0.8,
     // 1 = the default ripple: disturbed particles overshoot a few times before
     // settling, so a cursor pass leaves a visible wave instead of a snap-back.
-    particleEffectRecoverySpeed: 1.6,
+    particleEffectRecoverySpeed: 1.5,
+    particleEffectRecoveryDamping: 60,
     maxResults: 5,
     // Cannot read app.internalPlugins at module level: the real availability
     // check happens in main.ts onLayoutReady (disabled -> forced to false)
@@ -275,7 +279,7 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     newNoteUseCommand: false, // 新增：默认不使用命令覆盖
     newNoteCommandId: '', // 新增：命令 ID 默认为空
     newNoteDefaultFolder: '', // 新增：默认文件夹默认留空（仓库根目录）
-    vaultStats: false, // 新增：默认关闭库数据显示
+    vaultStats: true,
     vaultStatsItems: [...VAULT_STAT_KEYS], // 新增：默认全部启用，按默认顺序显示
     vaultStatsOrder: [...VAULT_STAT_KEYS], // 新增：默认顺序
     newNoteOnUnmatchedName: true, // 新增：默认开启「无匹配时快速新建」
@@ -782,7 +786,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                             {
                                 name: t.setting.vaultStats.name,
                                 desc: t.setting.vaultStats.desc,
-                                control: { type: 'toggle', key: 'vaultStats', defaultValue: false },
+                                control: { type: 'toggle', key: 'vaultStats', defaultValue: DEFAULT_SETTINGS.vaultStats },
                             },
                             {
                                 // 官方 SettingDefinitionList：设置 onReorder 后每行自带拖拽手柄
@@ -1009,6 +1013,12 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                         refreshDomAfterChange: true, // re-evaluate the dependent color pickers/mode items in place
                                     }),
                                     {
+                                        name: t.setting.particleEffectPreserveShading.name,
+                                        desc: t.setting.particleEffectPreserveShading.desc,
+                                        control: { type: 'toggle', key: 'particleEffectPreserveShading', defaultValue: DEFAULT_SETTINGS.particleEffectPreserveShading },
+                                        visible: () => s.particleEffect && s.particleEffectColorMode !== 'original',
+                                    },
+                                    {
                                         name: t.setting.particleEffectColor.name,
                                         desc: t.setting.particleEffectColor.desc,
                                         visible: () => s.particleEffect && s.particleEffectColorMode !== 'original',
@@ -1058,10 +1068,6 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                         ...this.sliderWithReset('particleEffectMotionFrequency', t.setting.particleEffectMotionFrequency.name, t.setting.particleEffectMotionFrequency.desc, 0.25, 4, 0.05),
                                         visible: () => s.particleEffect && s.particleEffectAmbientMotion !== 'none',
                                     },
-                                    {
-                                        ...this.sliderWithReset('particleEffectGlow', t.setting.particleEffectGlow.name, t.setting.particleEffectGlow.desc, 0, 100, 5),
-                                        visible: () => s.particleEffect,
-                                    },
                                 ],
                             },
                             {
@@ -1105,7 +1111,7 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 heading: t.group.particleInteraction,
                                 items: [
                                     {
-                                        ...this.sliderWithReset('particleEffectDisturbRadius', t.setting.particleEffectDisturbRadius.name, t.setting.particleEffectDisturbRadius.desc, 10, 150, 1),
+                                        ...this.sliderWithReset('particleEffectDisturbRadius', t.setting.particleEffectDisturbRadius.name, t.setting.particleEffectDisturbRadius.desc, 5, 100, 1),
                                         visible: () => s.particleEffect,
                                     },
                                     {
@@ -1113,7 +1119,15 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                         visible: () => s.particleEffect,
                                     },
                                     {
+                                        ...this.sliderWithReset('particleEffectDisturbFalloff', t.setting.particleEffectDisturbFalloff.name, t.setting.particleEffectDisturbFalloff.desc, 0.1, 2, 0.1),
+                                        visible: () => s.particleEffect,
+                                    },
+                                    {
                                         ...this.sliderWithReset('particleEffectRecoverySpeed', t.setting.particleEffectRecoverySpeed.name, t.setting.particleEffectRecoverySpeed.desc, 0.6, 2.5, 0.1),
+                                        visible: () => s.particleEffect,
+                                    },
+                                    {
+                                        ...this.sliderWithReset('particleEffectRecoveryDamping', t.setting.particleEffectRecoveryDamping.name, t.setting.particleEffectRecoveryDamping.desc, 0, 100, 5),
                                         visible: () => s.particleEffect,
                                     },
                                 ],

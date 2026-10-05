@@ -58,8 +58,8 @@
         const height = content.getBoundingClientRect().height
         if (height <= 0) return
         const zoomPadding = Math.max(0, (Math.round(effectiveParticleEffectScale(settings) * height) - height) / 2)
-        const top = zoomPadding + normalizeParticleCanvasPadding(settings.particleEffectCanvasPaddingTop, 50)
-        const bottom = zoomPadding + normalizeParticleCanvasPadding(settings.particleEffectCanvasPaddingBottom, 30)
+        const top = zoomPadding + normalizeParticleCanvasPadding(settings.particleEffectCanvasPaddingTop, 40)
+        const bottom = zoomPadding + normalizeParticleCanvasPadding(settings.particleEffectCanvasPaddingBottom, 0)
         rootEl.style.padding = `${top}px 0 ${bottom}px`
     }
 
@@ -81,6 +81,7 @@
         const colors = effectiveParticleEffectColors(settings)
         const next = new ParticleWordmarkEngine(rootEl, {
             colorMode: settings.particleEffectColorMode ?? 'original',
+            preserveShading: settings.particleEffectPreserveShading ?? true,
             color: colors.color,
             color2: colors.color2,
             gradientAnimation: settings.particleEffectGradientAnimation ?? 'static',
@@ -90,16 +91,17 @@
             gradientFrequency: settings.particleEffectGradientFrequency ?? 1,
             gradientPause: settings.particleEffectGradientPause ?? 0,
             motionFrequency: settings.particleEffectMotionFrequency ?? 1,
-            glow: (settings.particleEffectGlow ?? 0) / 100,
             zoom: effectiveParticleEffectScale(settings),
             spacing: settings.particleEffectSpacing,
             dotSize: settings.particleEffectDotSize,
             adaptiveSize: settings.particleEffectAdaptiveSize ?? true,
-            canvasPaddingTop: settings.particleEffectCanvasPaddingTop ?? 50,
-            canvasPaddingBottom: settings.particleEffectCanvasPaddingBottom ?? 30,
+            canvasPaddingTop: settings.particleEffectCanvasPaddingTop ?? 40,
+            canvasPaddingBottom: settings.particleEffectCanvasPaddingBottom ?? 0,
             onLayoutChange: reserveLayout,
-            repulsionRadius: settings.particleEffectDisturbRadius,
+            repulsionRadius: Math.max(5, Math.min(100, settings.particleEffectDisturbRadius)),
             repulsionStrength: settings.particleEffectDisturbStrength,
+            disturbanceFalloff: settings.particleEffectDisturbFalloff ?? 0.8,
+            recoveryDamping: (settings.particleEffectRecoveryDamping ?? 60) / 100,
             recoverySpeed: settings.particleEffectRecoverySpeed ?? 1,
             ambientMotion: settings.particleEffectAmbientMotion ?? 'none',
         })
@@ -180,6 +182,7 @@
         return [
             s.particleEffect,
             s.particleEffectColorMode,
+            s.particleEffectPreserveShading,
             s.particleEffectColor,
             s.particleEffectColorDark,
             s.particleEffectColor2,
@@ -193,7 +196,6 @@
             s.particleEffectGradientPause,
             s.particleEffectAmbientMotion,
             s.particleEffectMotionFrequency,
-            s.particleEffectGlow,
             s.particleEffectScale,
             s.particleEffectScaleMobile,
             s.particleEffectSpacing,
@@ -203,7 +205,9 @@
             s.particleEffectCanvasPaddingBottom,
             s.particleEffectDisturbRadius,
             s.particleEffectDisturbStrength,
+            s.particleEffectDisturbFalloff,
             s.particleEffectRecoverySpeed,
+            s.particleEffectRecoveryDamping,
             s.logoType,
             JSON.stringify(s.logo),
             s.iconColorType,

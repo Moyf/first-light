@@ -86,19 +86,27 @@ Use **Displayed content → Display** to drag periodic notes, recent files, and 
 
 In **Search → Style**, choose **Modern** (the default rounded, translucent input with a thick translucent outer ring), **Classic** (the original appearance), **Transparent** (medium-sized, with no input background, border, or blur), or **Minimal** (a smaller Classic variant with square corners, no border, less padding, and a smaller font). The new-note button remains beside the input. Each period also has its own settings group under **Periodic notes**.
 
-Particle settings use **Color**, **Effects**, **Canvas**, and **Interaction** groups. **Base color** pairs with **Gradient color**; the gradient color area defaults to 15% (10–90%), and the transition range defaults to 30% (0–100%). Both spatial controls apply to static/cycling gradients. Glow brightens crisp particle cores and adds translucent outer halos. Spacing is 1–3 (step 0.1), and size is 0.2–1 (step 0.05); Adaptive particle size preserves gaps and shrinks edge dots to follow the logo/title shape.
+Particle settings use **Color**, **Effects**, **Canvas**, and **Interaction** groups. **Base color** pairs with **Gradient color**; the gradient color area defaults to 15% (10–90%), and the transition range defaults to 30% (0–100%). Both spatial controls apply to static/cycling gradients. Spacing is 1–3 (step 0.1), and size is 0.2–1 (step 0.05); Adaptive particle size preserves gaps and shrinks edge dots to follow the logo/title shape.
 
 **Adaptive particle size** is disabled by default for uniform particle radii; enable it to preserve gaps and shrink edge dots, with a minimum radius of 0.2 before zoom. Spatial gradients follow the actual logo/title particles rather than canvas whitespace: a static gradient places the second color toward the chosen angle (90° right, 180° down), while a cycling color band travels across that range. Page spacing remains outside the scaled canvas, and logo/title margins still adjust their placement.
 
-**Canvas padding** has independent top and bottom sliders, defaulting to 40px above and below the particles (0–150px per side, step 5), independent of canvas scale. Existing shared padding values are preserved for both sides. The settings preview grows to include this space.
+**Canvas padding** has independent top and bottom sliders, defaulting to 40px above and 0px below the particles (0–150px per side, step 5), independent of canvas scale. Existing shared padding values are preserved for both sides. The settings preview grows to include this space.
 
-New installations use a cycling particle gradient with wave motion, Glow 40%, spacing 1.5, and size 0.4. The title uses the vault text font at 3.5em, and Compact mode starts enabled with centered rows. Periodic notes and vault stats remain disabled by default, and custom image sources start empty.
+New installations use a cycling particle gradient with wave motion, spacing 1.3 and size 0.45. The title uses the vault text font at 3.5em, and Compact mode starts enabled with centered rows. Vault stats are shown by default; periodic notes remain disabled and custom image sources start empty.
 
-**Pause interval** appears below Animation frequency for Cycling gradient and Breathing light (0–10 seconds, step 0.25, default 0). Cycling pauses after each full loop; breathing holds each color before fading to the other. Frequency changes the animation speed while the pause stays the selected number of seconds. 0 keeps the animation continuous.
+**Preserve source shading** is enabled by default in monochrome and gradient modes, retaining image and SVG brightness variations. Turn it off to use the selected colors directly. Paused cycling rests on Base color, with source shading applied when enabled.
+
+The built-in modern and old Obsidian logos use separated-facet SVGs only with particles in monochrome/gradient mode and source shading disabled. With shading enabled, the original logo artwork supplies its brightness variations.
+
+**Logo scale** controls logo size independently. Changing Title font size resizes only the title, including when using built-in, Lucide, image, or pasted SVG logos.
+
+**Pause interval** appears below Animation frequency for Cycling gradient and Breathing light (0–10 seconds, step 0.25, default 0). With a pause, cycling sweeps the color band completely across the particles and then rests on the base color; breathing holds each color before fading to the other. Frequency changes the animation speed while the pause stays the selected number of seconds. 0 keeps the animation continuous.
 
 In **Logo → Logo**, choose **SVG code** to paste a complete SVG directly into the multiline field. Valid SVG updates the logo; invalid markup shows a warning and keeps the previous image. Clearing the field removes the image. Pasted SVG also works with the particle effect.
 
-With particle effects enabled, both modern and old Obsidian logos use separated-facet SVGs in Monochrome and Gradient modes to keep their facets distinct. Original color and ordinary logo rendering retain the original versions.
+### Particle interaction
+
+Under **Particle effect → Interaction**, **Disturbance radius** ranges from 5–100 px (default 40), and disturbance strength defaults to 1. **Disturbance falloff** (0.1–2.0, step 0.1) controls how softly the cursor and touch influence fades outside that radius; its default is 0.8. Recovery speed defaults to 1.5. **Recovery damping** (0–100, default 60) reduces overshoot independently of recovery speed: higher values give a smoother return.
 
 ### Embedded search bar
 

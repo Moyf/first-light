@@ -361,7 +361,7 @@ const en: BaseMessage = {
 		},
 		logoScale: {
 			name: 'Logo scale',
-			desc: 'Set the logo dimensions relative to the title font size.',
+			desc: 'Adjust the logo size independently of the title font size.',
 		},
 		titleMargin: {
 			name: 'Title margin',
@@ -436,6 +436,10 @@ const en: BaseMessage = {
 				gradient: 'Gradient',
 			},
 		},
+		particleEffectPreserveShading: {
+			name: 'Preserve source shading',
+			desc: 'Keep image and SVG brightness variations in monochrome and gradient modes. Turn off to use the selected colors directly.',
+		},
 		particleEffectColor: {
 			name: 'Base color',
 			desc: 'Color used by all particles in monochrome mode, and the first gradient color; set separately for light and dark themes',
@@ -471,7 +475,7 @@ const en: BaseMessage = {
 		},
 		particleEffectGradientPause: {
 			name: 'Pause interval',
-			desc: 'Seconds to pause after each cycling loop, or hold each breathing color. 0 keeps the animation continuous.',
+			desc: 'Seconds to rest on the base color after each gradient sweep, or hold each breathing color. 0 keeps the animation continuous.',
 		},
 		particleEffectScale: {
 			name: 'Canvas scale (desktop)',
@@ -509,6 +513,14 @@ const en: BaseMessage = {
 			name: 'Disturbance strength',
 			desc: 'How strongly the cursor pushes particles away',
 		},
+		particleEffectDisturbFalloff: {
+			name: 'Disturbance falloff',
+			desc: 'Lower values give a soft tail beyond the disturbance radius; higher values make the affected area more sharply circular.',
+		},
+		particleEffectRecoveryDamping: {
+			name: 'Recovery damping',
+			desc: 'Higher values reduce overshoot and bouncing; 100 gives a smooth return. Recovery speed controls how quickly particles return.',
+		},
 		particleEffectRecoverySpeed: {
 			name: 'Recovery speed',
 			desc: 'How fast particles settle back after the cursor disturbs them; lower values keep the ripple going longer',
@@ -529,10 +541,6 @@ const en: BaseMessage = {
 		particleEffectMotionFrequency: {
 			name: 'Idle motion frequency',
 			desc: 'Speed of the idle motion (higher = faster); for Heartbeat this sets the interval between beats',
-		},
-		particleEffectGlow: {
-			name: 'Glow strength',
-			desc: 'Adds a bloom glow around the particles; 0 disables it, higher values glow brighter',
 		},
 		vaultStats: {
 			name: 'Show vault stats',

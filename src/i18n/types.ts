@@ -176,6 +176,7 @@ export interface BaseMessage {
 		particleEffect: SettingEntry
 		particleEffectPreview: SettingEntry
 		particleEffectColorMode: SettingEntry & { options: DropdownOptions }
+		particleEffectPreserveShading: SettingEntry
 		particleEffectColor: SettingEntry
 		particleEffectColor2: SettingEntry
 		particleEffectGradientAnimation: SettingEntry & { options: DropdownOptions }
@@ -193,10 +194,11 @@ export interface BaseMessage {
 		particleEffectCanvasPaddingBottom: SettingEntry
 		particleEffectDisturbRadius: SettingEntry
 		particleEffectDisturbStrength: SettingEntry
+		particleEffectDisturbFalloff: SettingEntry
 		particleEffectRecoverySpeed: SettingEntry
+		particleEffectRecoveryDamping: SettingEntry
 		particleEffectAmbientMotion: SettingEntry & { options: DropdownOptions }
 		particleEffectMotionFrequency: SettingEntry
-		particleEffectGlow: SettingEntry
 		vaultStats: SettingEntry
 		vaultStatsFiles: SettingEntry
 		vaultStatsNotes: SettingEntry
