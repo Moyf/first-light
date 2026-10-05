@@ -200,6 +200,8 @@ export interface BaseMessage {
 		particleEffectRecoveryDamping: SettingEntry
 		particleEffectAmbientMotion: SettingEntry & { options: DropdownOptions }
 		particleEffectMotionFrequency: SettingEntry
+		particleEffectGlowEnabled: SettingEntry
+		particleEffectGlow: SettingEntry
 		vaultStats: SettingEntry
 		vaultStatsFiles: SettingEntry
 		vaultStatsNotes: SettingEntry

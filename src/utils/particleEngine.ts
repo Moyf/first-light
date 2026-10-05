@@ -35,6 +35,8 @@ export interface ParticleWordmarkOptions {
     gradientPause: number
     /** Idle motion speed multiplier (heartbeat: beats per interval). */
     motionFrequency: number
+    /** Optional glow strength, 0 skips all bloom work. */
+    glow?: number
     /** Enlargement of the canvas content relative to the original wordmark box. */
     zoom: number
     /** Lattice spacing between sampled particles, CSS pixels. */
@@ -204,6 +206,7 @@ const RECOVERY_SPEED_DEFAULT = 1.4
 const RECOVERY_SPEED_MIN = 0.6
 const RECOVERY_SPEED_MAX = 2.5
 const MAX_FRAME_STEPS = 3 // a stalled frame (hidden tab, long task) counts as at most 3 reference steps
+const GLOW_BLUR_PX = 6
 const MAX_PARTICLES = 15000
 const RESIZE_DEBOUNCE_MS = 200
 const MIN_ALPHA = 128
@@ -299,6 +302,7 @@ export class ParticleWordmarkEngine {
     private readonly gradientFrequency: number
     private readonly gradientPause: number
     private readonly motionFrequency: number
+    private readonly glow: number
     private readonly colorA: RGB
     private readonly colorB: RGB
     /** Effective recovery speed (option value clamped to the supported range). */
@@ -349,6 +353,10 @@ export class ParticleWordmarkEngine {
     }
     /** Headroom (CSS px) padded around the content box in the offscreen raster. */
     private rasterPad = 0
+    private glowChain: HTMLCanvasElement[] = []
+    private glowChainWidth = 0
+    private glowChainHeight = 0
+    private glowDensity = 0.25
     private gradientShadeIndices: number[] = []
     private contentWidth = 0
     private contentHeight = 0
@@ -460,6 +468,7 @@ export class ParticleWordmarkEngine {
         this.gradientFrequency = Math.max(options.gradientFrequency ?? 1, 0.01)
         this.gradientPause = Number.isFinite(options.gradientPause) ? Math.min(10, Math.max(0, options.gradientPause)) : 0
         this.motionFrequency = Math.max(options.motionFrequency ?? 1, 0.01)
+        this.glow = Number.isFinite(options.glow) ? Math.min(1, Math.max(0, options.glow ?? 0)) : 0
         this.colorA = parseHexColor(options.color)
         this.colorB = parseHexColor(options.color2)
         // Tolerate an undefined value (settings loaded from an older schema).
@@ -760,6 +769,12 @@ export class ParticleWordmarkEngine {
             particles = this.collectParticles(data, edges, offscreen.width, offscreen.height, step, mono)
         }
         this.gradientShadeIndices = [...new Set(particles.map(particle => particle.shadeIndex))]
+        if (this.glow > 0) {
+            let area = 0
+            for (const particle of particles) area += 4 * particle.radius * particle.radius
+            const cellSize = step / this.scale * this.zoom
+            this.glowDensity = particles.length ? Math.min(1, Math.max(0.01, area / (particles.length * cellSize * cellSize))) : 0.25
+        }
         this.updateGradientAxis(particles)
         return particles
     }
@@ -979,6 +994,9 @@ export class ParticleWordmarkEngine {
         this.parallaxWindow = null
         this.viewportObserver?.disconnect()
         this.viewportObserver = null
+        this.glowChain = []
+        this.glowChainWidth = 0
+        this.glowChainHeight = 0
         this.stopLoop()
         if (this.canvas) {
             this.canvas.remove()
@@ -1161,6 +1179,89 @@ export class ParticleWordmarkEngine {
             context.fill(this.framePaths[0])
         }
         this.framePaths = null
+        this.applyGlow(context)
+    }
+
+    /** Opt-in bloom: downsampled translucent halos behind crisp particle cores. */
+    private applyGlow(context: CanvasRenderingContext2D): void {
+        if (this.glow <= 0) return
+        const source = this.canvas as HTMLCanvasElement
+        const chain = this.resolveGlowChain(source.width, source.height)
+        if (chain.length === 0) return
+        let previous = source
+        for (const canvas of chain) {
+            const stepContext = canvas.getContext('2d')
+            if (!stepContext) return
+            stepContext.clearRect(0, 0, canvas.width, canvas.height)
+            stepContext.imageSmoothingEnabled = true
+            stepContext.drawImage(previous, 0, 0, canvas.width, canvas.height)
+            previous = canvas
+        }
+        const near = chain[Math.max(0, chain.length - 2)]
+        // A sparse lattice loses alpha when blurred. Compensate its measured
+        // coverage on the small buffers, while keeping the final halo opacity
+        // capped below. Dense dots need much less gain, so they cannot turn
+        // the same slider value into opaque fog. Low strengths stay subtle.
+        const gain = 1 + (Math.min(32, 1 / this.glowDensity) - 1) * this.glow * this.glow
+        if (near !== previous) this.normalizeHalo(near, gain)
+        this.normalizeHalo(previous, gain)
+        context.save()
+        context.setTransform(1, 0, 0, 1, 0, 0)
+        // Brighten the exact particle shapes, without spreading their core.
+        // Screen stays bounded instead of additive clipping to white. Read
+        // the clean canvas once; the halo below was also sampled before this.
+        context.globalCompositeOperation = 'screen'
+        context.globalAlpha = this.glow * 0.65
+        context.drawImage(source, 0, 0)
+        context.globalCompositeOperation = 'destination-over'
+        context.imageSmoothingEnabled = true
+        // Put most of the light in the outer halo. The near layer remains
+        // faint so the particle outlines and gaps keep their contrast.
+        context.globalAlpha = this.glow * 0.25
+        context.drawImage(near, 0, 0, source.width, source.height)
+        context.globalAlpha = this.glow * 0.55
+        context.drawImage(previous, 0, 0, source.width, source.height)
+        context.restore()
+    }
+
+    /** Source-over grows halo coverage without additive color clipping. */
+    private normalizeHalo(canvas: HTMLCanvasElement, gain: number): void {
+        if (gain <= 1.001) return
+        const context = canvas.getContext('2d')
+        if (!context) return
+        context.save()
+        context.globalCompositeOperation = 'source-over'
+        while (gain > 1.001) {
+            const alpha = Math.min(1, gain - 1)
+            context.globalAlpha = alpha
+            context.drawImage(canvas, 0, 0)
+            gain /= 1 + alpha
+        }
+        context.restore()
+    }
+
+    /**
+     * Cached halving canvases with a fixed CSS-pixel reduction factor. The
+     * blur must not grow with canvas width: that washed wide titles into fog.
+     */
+    private resolveGlowChain(deviceWidth: number, deviceHeight: number): HTMLCanvasElement[] {
+        if (this.glowChainWidth === deviceWidth && this.glowChainHeight === deviceHeight && this.glowChain.length > 0) return this.glowChain
+        const chain: HTMLCanvasElement[] = []
+        let width = deviceWidth
+        let height = deviceHeight
+        const levels = Math.ceil(Math.log2(Math.max(2, GLOW_BLUR_PX * this.renderScale)))
+        while (chain.length < levels && width > 1 && height > 1) {
+            width = Math.max(1, Math.floor(width / 2))
+            height = Math.max(1, Math.floor(height / 2))
+            const canvas = createEl('canvas')
+            canvas.width = width
+            canvas.height = height
+            chain.push(canvas)
+        }
+        this.glowChain = chain
+        this.glowChainWidth = deviceWidth
+        this.glowChainHeight = deviceHeight
+        return chain
     }
 
     /**

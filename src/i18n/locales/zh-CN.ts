@@ -546,6 +546,14 @@ const zhCN: BaseMessage = {
 			name: '运动频率',
 			desc: '空闲运动的变化速度（数值越大越快）；心跳模式对应两次心跳的间隔',
 		},
+		particleEffectGlowEnabled: {
+			name: '辉光',
+			desc: '为粒子添加外部光晕。性能开销较大，尤其是大画布；默认关闭。',
+		},
+		particleEffectGlow: {
+			name: '辉光强度',
+			desc: '控制光晕亮度；0 时跳过辉光绘制。',
+		},
 		vaultStats: {
 			name: '显示库数据',
 			desc: '在主页偏下方的位置显示库统计信息（总文件数、笔记数、附件数、文件夹数、标签数）。',

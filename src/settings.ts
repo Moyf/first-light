@@ -80,6 +80,8 @@ export interface HomeTabSettings extends ObjectKeys{
     particleEffectGradientPause: number
     particleEffectAmbientMotion?: 'none' | 'wave' | 'float' | 'undulate' | 'pulse' | 'ripple' | 'breathe' // 新增：粒子的默认漂浮运动模式
     particleEffectMotionFrequency: number
+    particleEffectGlowEnabled: boolean
+    particleEffectGlow: number
     particleEffectScale: number
     particleEffectScaleMobile: number
     particleEffectSpacing: number
@@ -202,6 +204,8 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     particleEffectGradientPause: 0,
     particleEffectAmbientMotion: 'wave',
     particleEffectMotionFrequency: 0.55,
+    particleEffectGlowEnabled: false,
+    particleEffectGlow: 40,
     particleEffectScale: 2,
     // Mobile renders at 1× so the zoomed canvas never overflows the narrow layout.
     particleEffectScaleMobile: 1,
@@ -1069,6 +1073,16 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                     {
                                         ...this.sliderWithReset('particleEffectMotionFrequency', t.setting.particleEffectMotionFrequency.name, t.setting.particleEffectMotionFrequency.desc, 0.25, 4, 0.05),
                                         visible: () => s.particleEffect && s.particleEffectAmbientMotion !== 'none',
+                                    },
+                                    {
+                                        name: t.setting.particleEffectGlowEnabled.name,
+                                        desc: t.setting.particleEffectGlowEnabled.desc,
+                                        control: { type: 'toggle', key: 'particleEffectGlowEnabled', defaultValue: DEFAULT_SETTINGS.particleEffectGlowEnabled },
+                                        visible: () => s.particleEffect,
+                                    },
+                                    {
+                                        ...this.sliderWithReset('particleEffectGlow', t.setting.particleEffectGlow.name, t.setting.particleEffectGlow.desc, 0, 100, 5),
+                                        visible: () => s.particleEffect && s.particleEffectGlowEnabled,
                                     },
                                 ],
                             },

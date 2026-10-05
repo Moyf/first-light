@@ -546,6 +546,14 @@ const en: BaseMessage = {
 			name: 'Idle motion frequency',
 			desc: 'Speed of the idle motion (higher = faster); for Heartbeat this sets the interval between beats',
 		},
+		particleEffectGlowEnabled: {
+			name: 'Glow',
+			desc: 'Adds outer halos around particles. Significant performance cost, especially on large canvases; disabled by default.',
+		},
+		particleEffectGlow: {
+			name: 'Glow strength',
+			desc: 'How bright the glow appears; 0 skips glow rendering.',
+		},
 		vaultStats: {
 			name: 'Show vault stats',
 			desc: 'Display vault statistics (files, notes, attachments, folders, tags) near the bottom of the home tab.',

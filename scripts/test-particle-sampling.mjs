@@ -269,6 +269,46 @@ for (const scale of [1, 2.25, 3]) {
         }
     }
 }
+// A wide canvas must not produce a wider halo. Core brightness uses the exact
+// sharp image; translucent outer halos go underneath with bounded strength.
+const normalization = [];
+sandbox.createEl = () => ({ getContext: () => ({ clearRect() {}, save() {}, restore() {}, drawImage() {
+    if (this.globalCompositeOperation === 'source-over') normalization.push(this.globalAlpha);
+} }) });
+const glowEngine = new ParticleWordmarkEngine(containerStub, { color: '#000000', color2: '#ffffff', zoom: 1, glow: 1 });
+glowEngine.renderScale = 2;
+assert.equal(glowEngine.resolveGlowChain(640, 320).at(-1).width, 40);
+assert.equal(glowEngine.resolveGlowChain(1280, 640).at(-1).width, 80);
+const cached = glowEngine.resolveGlowChain(1280, 640);
+assert.equal(glowEngine.resolveGlowChain(1280, 640), cached);
+glowEngine.canvas = { width: 1280, height: 640 };
+const passes = [];
+glowEngine.applyGlow({ save() {}, restore() {}, setTransform() {}, drawImage() {
+    passes.push({ mode: this.globalCompositeOperation, alpha: this.globalAlpha });
+} });
+assert.deepEqual(passes, [{ mode: 'screen', alpha: 0.65 }, { mode: 'destination-over', alpha: 0.25 }, { mode: 'destination-over', alpha: 0.55 }]);
+assert.deepEqual(normalization, [1, 1, 1, 1], '100% glow compensates a 25% dot coverage without raising final opacity');
+normalization.length = 0;
+passes.length = 0;
+glowEngine.glow = 0.5;
+glowEngine.applyGlow({ save() {}, restore() {}, setTransform() {}, drawImage() {
+    passes.push({ mode: this.globalCompositeOperation, alpha: this.globalAlpha });
+} });
+assert.deepEqual(passes, [{ mode: 'screen', alpha: 0.325 }, { mode: 'destination-over', alpha: 0.125 }, { mode: 'destination-over', alpha: 0.275 }]);
+assert.deepEqual(normalization, [0.75, 0.75], 'Low strengths use less compensation');
+normalization.length = 0;
+passes.length = 0;
+glowEngine.glow = 0;
+glowEngine.applyGlow({ drawImage() { assert.fail('Disabled glow must skip drawing'); } });
+assert.equal(passes.length, 0);
+assert.equal(normalization.length, 0);
+glowEngine.glow = 1;
+glowEngine.glowDensity = 1;
+glowEngine.applyGlow({ save() {}, restore() {}, setTransform() {}, drawImage() {} });
+assert.equal(normalization.length, 0, 'Solid coverage must not get the gain used by sparse particles');
+glowEngine.glowDensity = 0.01;
+glowEngine.applyGlow({ save() {}, restore() {}, setTransform() {}, drawImage() {} });
+assert.equal(normalization.length, 10, 'Extremely sparse gain remains bounded to five small-buffer passes per layer');
 // Vertical safety space is per-side CSS pixels, not multiplied by zoom, and
 // does not change the gradient's span or the particles' horizontal positions.
 for (const [value, expected] of [[undefined, 50], [NaN, 50], [-5, 0], [0, 0], [50, 50], [200, 150]]) {

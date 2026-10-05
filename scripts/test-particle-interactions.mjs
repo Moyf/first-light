@@ -110,7 +110,8 @@ for (const ambientMotion of ['none', 'wave', 'float', 'undulate', 'pulse', 'brea
     }
 }
 for (const [key, value] of Object.entries({ particleEffectScale: 2, particleEffectScaleMobile: 1, particleEffectSpacing: 1.3, particleEffectDotSize: 0.45, particleEffectCanvasPaddingTop: 40, particleEffectCanvasPaddingBottom: 0, particleEffectDisturbRadius: 40, particleEffectDisturbStrength: 1, particleEffectDisturbFalloff: 0.8, particleEffectRecoverySpeed: 1.5, particleEffectRecoveryDamping: 60 })) assert.equal(DEFAULT_SETTINGS[key], value);
-assert.equal('particleEffectGlow' in DEFAULT_SETTINGS, false);
+assert.equal(DEFAULT_SETTINGS.particleEffectGlowEnabled, false);
+assert.equal(DEFAULT_SETTINGS.particleEffectGlow, 40);
 
 // Perspective inversion must keep cursor disturbance aligned with visible dots.
 const { mapParallaxPointer } = sandbox.module.exports;
@@ -166,3 +167,18 @@ for (const dt of [0.5, 1, 2]) {
     enabled.handleParallaxMove({ clientX: 0, clientY: 0 });
     assert.equal(enabled.parallaxReturning, false, 'Reentry immediately resumes pointer following');
 }
+
+// Glow remains opt-in even when an older settings file contains a strength.
+const effects = particlePage.items.find(item => item.heading === en.group.particleEffects);
+const glowToggle = effects.items.find(item => item.control?.key === 'particleEffectGlowEnabled');
+const glowStrength = effects.items.find(item => item.name === en.setting.particleEffectGlow.name);
+assert.equal(glowToggle.control.defaultValue, false);
+assert.ok(!glowStrength.visible());
+plugin.settings.particleEffectGlowEnabled = true;
+assert.ok(glowStrength.visible());
+plugin.settings.particleEffect = false;
+assert.ok(!glowToggle.visible() && !glowStrength.visible());
+plugin.settings.particleEffect = true;
+let glowLimits;
+glowStrength.render({ addSlider(fn) { fn({ setLimits(...v) { glowLimits = v; return this; }, setDynamicTooltip() { return this; }, setValue() { return this; }, onChange() { return this; } }); return this; } });
+assert.deepEqual(glowLimits, [0, 100, 5]);

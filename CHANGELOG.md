@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.12.1](https://github.com/Moyf/harbor-tab/compare/1.12.0...1.12.1) - 2026-10-06
+
+### ⚡ Changed
+
+- **Optional Glow**: Restore particle Glow behind a separate toggle, disabled by default. Enabling it reveals the previous 0–100 strength slider (default 40); settings explicitly note the significant performance cost, especially on large canvases.
+
+<details>
+<summary>中文说明（点击展开）</summary>
+
+- **可选辉光**：恢复粒子 Glow，新增独立开关，默认关闭。开启后显示原有 0–100 强度滑块（默认 40）；设置中明确提示较大的性能开销，尤其是大画布。
+
+</details>
+
 ## [1.12.0](https://github.com/Moyf/harbor-tab/compare/1.11.0...1.12.0) - 2026-10-06
 
 ### ✨ Added

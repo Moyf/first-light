@@ -1,7 +1,7 @@
 {
   "id": "harbor-tab",
   "name": "Harbor Tab",
-  "version": "1.12.0",
+  "version": "1.12.1",
   "minAppVersion": "1.13.0",
   "description": "A browser-like home tab with instant file search, starred and recent files, and an optional interactive particle wordmark.",
   "author": "Renso, Moy",

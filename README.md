@@ -104,6 +104,8 @@ The built-in modern and old Obsidian logos use separated-facet SVGs only with pa
 
 In **Logo → Logo**, choose **SVG code** to paste a complete SVG directly into the multiline field. Valid SVG updates the logo; invalid markup shows a warning and keeps the previous image. Clearing the field removes the image. Pasted SVG also works with the particle effect.
 
+**Glow** is opt-in and disabled by default. Enabling it reveals Glow strength (0–100, default 40). It adds crisp core brightness and translucent outer halos, with significant rendering cost on large canvases.
+
 ### Particle interaction
 
 **Pointer parallax**, disabled by default, tracks the entire Obsidian window and moves opposite to the cursor with a 3D tilt and smoothly recenters on leave. It applies to desktop only and respects reduced motion.
