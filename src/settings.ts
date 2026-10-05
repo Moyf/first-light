@@ -90,6 +90,7 @@ export interface HomeTabSettings extends ObjectKeys{
     particleEffectDisturbRadius: number
     particleEffectDisturbStrength: number
     particleEffectDisturbFalloff: number
+    particleEffectParallax: boolean
     particleEffectRecoverySpeed: number
     particleEffectRecoveryDamping: number
     maxResults: number
@@ -212,6 +213,7 @@ export const DEFAULT_SETTINGS: HomeTabSettings = {
     particleEffectDisturbRadius: 40,
     particleEffectDisturbStrength: 1,
     particleEffectDisturbFalloff: 0.8,
+    particleEffectParallax: false,
     // 1 = the default ripple: disturbed particles overshoot a few times before
     // settling, so a cursor pass leaves a visible wave instead of a snap-back.
     particleEffectRecoverySpeed: 1.5,
@@ -1110,6 +1112,12 @@ export class HomeTabSettingTab extends PluginSettingTab {
                                 type: 'group',
                                 heading: t.group.particleInteraction,
                                 items: [
+                                    {
+                                        name: t.setting.particleEffectParallax.name,
+                                        desc: t.setting.particleEffectParallax.desc,
+                                        control: { type: 'toggle', key: 'particleEffectParallax', defaultValue: DEFAULT_SETTINGS.particleEffectParallax },
+                                        visible: () => s.particleEffect,
+                                    },
                                     {
                                         ...this.sliderWithReset('particleEffectDisturbRadius', t.setting.particleEffectDisturbRadius.name, t.setting.particleEffectDisturbRadius.desc, 5, 100, 1),
                                         visible: () => s.particleEffect,

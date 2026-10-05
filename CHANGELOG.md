@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.12.0](https://github.com/Moyf/harbor-tab/compare/1.11.0...1.12.0) - 2026-10-06
+
+### ✨ Added
+
+- **Pointer parallax**: Add an optional window-wide reverse pointer shift with tilt up to 6° horizontally / 8° vertically, 0.8-second ease-out recentering, and corrected cursor interaction. Disabled by default; desktop only and respects reduced motion. Large canvases can incur additional GPU compositing cost.
+
+<details>
+<summary>中文说明（点击展开）</summary>
+
+- **鼠标视差**：新增整个窗口范围的反向鼠标平移与透视倾斜（左右最大 6°、上下最大 8°），离开后以 0.8 秒 ease-out 平滑归位并校正粒子扰动坐标。默认关闭，仅桌面生效并尊重减少动态效果偏好；较大画布可能增加 GPU 合成开销。
+
+</details>
+
 ## [1.11.0](https://github.com/Moyf/harbor-tab/compare/1.10.0...1.11.0) - 2026-10-05
 
 ### 🐛 Fixed

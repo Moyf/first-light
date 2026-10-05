@@ -195,6 +195,7 @@ export interface BaseMessage {
 		particleEffectDisturbRadius: SettingEntry
 		particleEffectDisturbStrength: SettingEntry
 		particleEffectDisturbFalloff: SettingEntry
+		particleEffectParallax: SettingEntry
 		particleEffectRecoverySpeed: SettingEntry
 		particleEffectRecoveryDamping: SettingEntry
 		particleEffectAmbientMotion: SettingEntry & { options: DropdownOptions }

@@ -54,6 +54,8 @@ export interface ParticleWordmarkOptions {
     repulsionStrength: number
     /** Soft cursor-field decay, 0.1–2; omitted preserves the legacy field. */
     disturbanceFalloff?: number
+    /** Reverse pointer translation with a subtle perspective tilt (desktop only). */
+    parallax?: boolean
     /**
      * How fast a disturbed particle settles back home — the knob behind the
      * "linger vs snap" feel of the cursor ripple. 1 is the default ripple
@@ -102,6 +104,18 @@ export function disturbanceWeight(distance: number, radius: number, profile: Dis
     if (index >= 1024) return 0
     const left = Math.floor(index)
     return profile.samples[left] + (profile.samples[left + 1] - profile.samples[left]) * (index - left)
+}
+
+/** Invert the tilted canvas plane without reading computed styles or DOM matrices. */
+export function mapParallaxPointer(x: number, y: number, shiftX: number, shiftY: number, pitch: number, yaw: number): { x: number; y: number } {
+    const rx = pitch * Math.PI / 180, ry = yaw * Math.PI / 180
+    const sx = Math.sin(rx), cx = Math.cos(rx), sy = Math.sin(ry), cy = Math.cos(ry)
+    const u = x - shiftX, v = y - shiftY
+    const a = cy - u * sy / 1000, b = sy * sx + u * cy * sx / 1000
+    const c = -v * sy / 1000, d = cx + v * cy * sx / 1000
+    const determinant = a * d - b * c
+    if (Math.abs(determinant) < 0.000001) return { x: u, y: v }
+    return { x: (u * d - b * v) / determinant, y: (a * v - u * c) / determinant }
 }
 
 // Offscreen raster headroom. Glyph ink can overflow the measured content box
@@ -304,6 +318,35 @@ export class ParticleWordmarkEngine {
     private renderScale = 1
     private viewportObserver: IntersectionObserver | null = null
     private viewportVisible = true
+    private readonly parallaxEnabled: boolean
+    private parallaxWindow: Window | null = null
+    private parallaxX = 0
+    private parallaxY = 0
+    private parallaxTargetX = 0
+    private parallaxTargetY = 0
+    private parallaxTransform = ''
+    private parallaxReturning = false
+    private parallaxReturnElapsed = 0
+    private parallaxReturnX = 0
+    private parallaxReturnY = 0
+
+    private readonly handleParallaxMove = (event: MouseEvent): void => {
+        const view = this.parallaxWindow
+        if (!view || view.innerWidth <= 0 || view.innerHeight <= 0) return
+        this.parallaxReturning = false
+        this.parallaxTargetX = Math.max(-1, Math.min(1, event.clientX / view.innerWidth * 2 - 1))
+        this.parallaxTargetY = Math.max(-1, Math.min(1, event.clientY / view.innerHeight * 2 - 1))
+    }
+
+    private readonly handleParallaxLeave = (): void => {
+        if (this.parallaxReturning) return
+        this.parallaxReturning = true
+        this.parallaxReturnElapsed = 0
+        this.parallaxReturnX = this.parallaxX
+        this.parallaxReturnY = this.parallaxY
+        this.parallaxTargetX = 0
+        this.parallaxTargetY = 0
+    }
     /** Headroom (CSS px) padded around the content box in the offscreen raster. */
     private rasterPad = 0
     private gradientShadeIndices: number[] = []
@@ -353,6 +396,7 @@ export class ParticleWordmarkEngine {
         // The view (and therefore the container) may live in a popout window:
         // track THAT document's visibility, not the main window's.
         if (this.container.ownerDocument.hidden) {
+            this.handleParallaxLeave()
             this.stopLoop()
         } else if (this.canvas && this.viewportVisible) {
             this.startLoop()
@@ -396,6 +440,9 @@ export class ParticleWordmarkEngine {
         this.options = options
         // Resolve from the window that hosts the container (popout-safe)
         this.isTouch = 'ontouchstart' in (container.ownerDocument.defaultView ?? window)
+        const ownerWindow = container.ownerDocument.defaultView ?? window
+        this.parallaxEnabled = options.parallax === true && !this.isTouch
+            && !ownerWindow.matchMedia?.('(prefers-reduced-motion: reduce)').matches
         this.repulsionRadius = options.repulsionRadius * (this.isTouch ? TOUCH_REPULSION_FACTOR : 1)
         this.repulsionStrength = options.repulsionStrength
         this.disturbanceProfile = createDisturbanceProfile(options.disturbanceFalloff)
@@ -819,6 +866,12 @@ export class ParticleWordmarkEngine {
     /** Takes over the rendering: overlay canvas + hidden originals + listeners + animation loop. */
     private activate(sources: CapturedSources): void {
         this.installCanvas()
+        if (this.parallaxEnabled) {
+            this.parallaxWindow = this.container.ownerDocument.defaultView ?? window
+            this.parallaxWindow.document.addEventListener('mousemove', this.handleParallaxMove, { passive: true, capture: true })
+            this.parallaxWindow.document.addEventListener('mouseleave', this.handleParallaxLeave)
+            this.parallaxWindow.addEventListener('blur', this.handleParallaxLeave)
+        }
         this.hideCapturedElements(sources.hiddenElements)
         if (this.isTouch) {
             // Touch has no hover: taps fire a one-shot burst. Keeping a
@@ -872,7 +925,8 @@ export class ParticleWordmarkEngine {
             display: 'block',
             pointerEvents: 'none',
             opacity: '0',
-            transition: 'opacity 0.4s ease'
+            transition: 'opacity 0.4s ease',
+            ...(this.parallaxEnabled ? { willChange: 'transform' } : {})
         })
 
         const context = canvas.getContext('2d')
@@ -919,6 +973,10 @@ export class ParticleWordmarkEngine {
         this.container.removeEventListener('mouseleave', this.handleMouseLeave)
         this.container.removeEventListener('click', this.handleClick)
         this.container.ownerDocument.removeEventListener('visibilitychange', this.handleVisibilityChange)
+        this.parallaxWindow?.document.removeEventListener('mousemove', this.handleParallaxMove, true)
+        this.parallaxWindow?.document.removeEventListener('mouseleave', this.handleParallaxLeave)
+        this.parallaxWindow?.removeEventListener('blur', this.handleParallaxLeave)
+        this.parallaxWindow = null
         this.viewportObserver?.disconnect()
         this.viewportObserver = null
         this.stopLoop()
@@ -954,6 +1012,7 @@ export class ParticleWordmarkEngine {
                 ? 1
                 : Math.min(Math.max((now - this.lastFrameTime) / REFERENCE_FRAME_MS, 0), MAX_FRAME_STEPS)
             this.lastFrameTime = now
+            if (this.parallaxEnabled) this.updateParallax(dt)
             this.step(dt)
             this.render()
             this.rafId = window.requestAnimationFrame(frame)
@@ -974,6 +1033,29 @@ export class ParticleWordmarkEngine {
         return (this.container.ownerDocument.defaultView ?? window).performance.now()
     }
 
+    /** One transform per frame, independent of the particle count. */
+    private updateParallax(dt: number): void {
+        if (this.parallaxReturning) {
+            this.parallaxReturnElapsed += dt * REFERENCE_FRAME_MS
+            const progress = Math.min(1, this.parallaxReturnElapsed / 800)
+            // Cubic ease-out: a slower return that gently settles at the center.
+            const remaining = Math.pow(1 - progress, 3)
+            this.parallaxX = this.parallaxReturnX * remaining
+            this.parallaxY = this.parallaxReturnY * remaining
+        } else {
+            const easing = 1 - Math.exp(-0.1 * dt)
+            this.parallaxX += (this.parallaxTargetX - this.parallaxX) * easing
+            this.parallaxY += (this.parallaxTargetY - this.parallaxY) * easing
+            if (Math.abs(this.parallaxX - this.parallaxTargetX) < 0.0005) this.parallaxX = this.parallaxTargetX
+            if (Math.abs(this.parallaxY - this.parallaxTargetY) < 0.0005) this.parallaxY = this.parallaxTargetY
+        }
+        const transform = `translate(-50%, -50%) translate3d(${(-this.parallaxX * 12).toFixed(2)}px, ${(-this.parallaxY * 12).toFixed(2)}px, 0) perspective(1000px) rotateY(${(this.parallaxX * 6).toFixed(3)}deg) rotateX(${(-this.parallaxY * 8).toFixed(3)}deg)`
+        if (transform !== this.parallaxTransform) {
+            this.canvas?.style.setProperty('transform', transform)
+            this.parallaxTransform = transform
+        }
+    }
+
     /**
      * Euler integration: mouse repulsion + spring back home + damping.
      * `dt` is the frame delta in 60 Hz reference frames (1 = one 16.7 ms step),
@@ -983,8 +1065,12 @@ export class ParticleWordmarkEngine {
         const radius = this.repulsionRadius
         const reach = radius * this.disturbanceProfile.range
         const radiusSquared = reach * reach
-        const mouseX = this.mouse.x
-        const mouseY = this.mouse.y
+        const pointer = this.parallaxEnabled && this.mouse.x !== -9999
+            ? mapParallaxPointer(this.mouse.x - this.cssWidth / 2, this.mouse.y - this.cssHeight / 2,
+                -this.parallaxX * 12, -this.parallaxY * 12, -this.parallaxY * 8, this.parallaxX * 6)
+            : null
+        const mouseX = pointer ? pointer.x + this.cssWidth / 2 : this.mouse.x
+        const mouseY = pointer ? pointer.y + this.cssHeight / 2 : this.mouse.y
         const spring = this.springStrength * dt
         const damping = Math.exp(-this.dampingRate * dt)
         const travel = dt

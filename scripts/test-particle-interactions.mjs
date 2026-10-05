@@ -111,3 +111,58 @@ for (const ambientMotion of ['none', 'wave', 'float', 'undulate', 'pulse', 'brea
 }
 for (const [key, value] of Object.entries({ particleEffectScale: 2, particleEffectScaleMobile: 1, particleEffectSpacing: 1.3, particleEffectDotSize: 0.45, particleEffectCanvasPaddingTop: 40, particleEffectCanvasPaddingBottom: 0, particleEffectDisturbRadius: 40, particleEffectDisturbStrength: 1, particleEffectDisturbFalloff: 0.8, particleEffectRecoverySpeed: 1.5, particleEffectRecoveryDamping: 60 })) assert.equal(DEFAULT_SETTINGS[key], value);
 assert.equal('particleEffectGlow' in DEFAULT_SETTINGS, false);
+
+// Perspective inversion must keep cursor disturbance aligned with visible dots.
+const { mapParallaxPointer } = sandbox.module.exports;
+for (const pitch of [-8, 0, 8]) for (const yaw of [-6, 0, 6]) {
+    for (const [x, y] of [[-800, -120], [0, 0], [800, 120]]) {
+        const rx = pitch * Math.PI / 180, ry = yaw * Math.PI / 180;
+        const z = -Math.sin(ry) * x + Math.cos(ry) * Math.sin(rx) * y;
+        const w = 1 - z / 1000;
+        const visibleX = (Math.cos(ry) * x + Math.sin(ry) * Math.sin(rx) * y) / w - 12;
+        const visibleY = Math.cos(rx) * y / w + 6;
+        const mapped = mapParallaxPointer(visibleX, visibleY, -12, 6, pitch, yaw);
+        assert.ok(Math.abs(mapped.x - x) < 1e-8 && Math.abs(mapped.y - y) < 1e-8);
+    }
+}
+const enabled = new ParticleWordmarkEngine(container(), { ...options, parallax: true });
+const transforms = [];
+enabled.canvas = { style: { setProperty(_, value) { transforms.push(value); } } };
+enabled.parallaxWindow = { innerWidth: 1000, innerHeight: 500 };
+enabled.handleParallaxMove({ clientX: 1000, clientY: 250 });
+for (let i = 0; i < 120; i++) enabled.updateParallax(1);
+assert.ok(transforms.at(-1).includes('translate3d(-12.00px, 0.00px, 0)'));
+assert.ok(transforms.at(-1).includes('rotateY(6.000deg)'));
+// Normalization follows the whole owner window, independent of the wordmark box.
+enabled.handleParallaxMove({ clientX: 500, clientY: 500 });
+assert.equal(enabled.parallaxTargetX, 0);
+assert.equal(enabled.parallaxTargetY, 1);
+enabled.handleParallaxMove({ clientX: 1000, clientY: 250 });
+const settledWrites = transforms.length;
+enabled.updateParallax(1);
+assert.equal(transforms.length, settledWrites, 'Settled targets must stop writing transforms');
+enabled.handleParallaxLeave();
+for (let i = 0; i < 120; i++) enabled.updateParallax(1);
+assert.equal(enabled.parallaxX, 0);
+assert.ok(transforms.at(-1).includes('rotateY(0.000deg)'));
+assert.equal(new ParticleWordmarkEngine(container(), options).parallaxEnabled, false);
+assert.equal(new ParticleWordmarkEngine(container({ ontouchstart: null }), { ...options, parallax: true }).parallaxEnabled, false);
+assert.equal(new ParticleWordmarkEngine(container({ matchMedia: () => ({ matches: true }) }), { ...options, parallax: true }).parallaxEnabled, false);
+assert.equal(DEFAULT_SETTINGS.particleEffectParallax, false);
+const parallaxControl = interaction.items.find(item => item.control?.key === 'particleEffectParallax');
+assert.equal(parallaxControl.control.defaultValue, false);
+
+for (const dt of [0.5, 1, 2]) {
+    enabled.parallaxReturning = false;
+    enabled.parallaxX = 1; enabled.parallaxY = -1;
+    enabled.handleParallaxLeave();
+    for (let elapsed = 0; elapsed < 24; elapsed += dt) enabled.updateParallax(dt);
+    assert.ok(Math.abs(enabled.parallaxX - 0.125) < 1e-8, 'Halfway through 800 ms cubic ease-out, one eighth remains');
+    const elapsed = enabled.parallaxReturnElapsed;
+    enabled.handleParallaxLeave();
+    assert.equal(enabled.parallaxReturnElapsed, elapsed, 'Repeated leave/blur must not restart the return');
+    for (let elapsed = 0; elapsed < 25; elapsed += dt) enabled.updateParallax(dt);
+    assert.equal(enabled.parallaxX, 0);
+    enabled.handleParallaxMove({ clientX: 0, clientY: 0 });
+    assert.equal(enabled.parallaxReturning, false, 'Reentry immediately resumes pointer following');
+}

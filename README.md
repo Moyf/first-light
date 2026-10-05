@@ -106,6 +106,8 @@ In **Logo → Logo**, choose **SVG code** to paste a complete SVG directly into 
 
 ### Particle interaction
 
+**Pointer parallax**, disabled by default, tracks the entire Obsidian window and moves opposite to the cursor with a 3D tilt and smoothly recenters on leave. It applies to desktop only and respects reduced motion.
+
 Under **Particle effect → Interaction**, **Disturbance radius** ranges from 5–100 px (default 40), and disturbance strength defaults to 1. **Disturbance falloff** (0.1–2.0, step 0.1) controls how softly the cursor and touch influence fades outside that radius; its default is 0.8. Recovery speed defaults to 1.5. **Recovery damping** (0–100, default 60) reduces overshoot independently of recovery speed: higher values give a smoother return.
 
 ### Embedded search bar

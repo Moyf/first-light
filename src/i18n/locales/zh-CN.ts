@@ -513,6 +513,10 @@ const zhCN: BaseMessage = {
 			name: '扰动力度',
 			desc: '鼠标推开粒子的强度',
 		},
+		particleEffectParallax: {
+			name: '鼠标视差',
+			desc: '在整个 Obsidian 窗口内检测鼠标，反向平移并加入 3D 倾斜；鼠标离开后平滑归位。仅桌面生效，尊重减少动态效果偏好。',
+		},
 		particleEffectDisturbFalloff: {
 			name: '扰动衰减',
 			desc: '较低时，扰动在半径之外仍有柔和长尾；较高时，受影响区域更接近边界清晰的圆形。',

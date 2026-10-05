@@ -513,6 +513,10 @@ const en: BaseMessage = {
 			name: 'Disturbance strength',
 			desc: 'How strongly the cursor pushes particles away',
 		},
+		particleEffectParallax: {
+			name: 'Pointer parallax',
+			desc: 'Follow the pointer across the entire Obsidian window with a reverse shift and 3D tilt; smoothly return when the pointer leaves. Desktop only; respects reduced motion.',
+		},
 		particleEffectDisturbFalloff: {
 			name: 'Disturbance falloff',
 			desc: 'Lower values give a soft tail beyond the disturbance radius; higher values make the affected area more sharply circular.',

@@ -28,7 +28,6 @@ data.json
 .eslintrc
 .npmrc
 .esbuild.config.mjs
-version-bump.mjs
 # tsconfig.json
 versions.json
 
