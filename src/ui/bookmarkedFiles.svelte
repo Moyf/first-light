@@ -33,7 +33,11 @@
     let listWrapperEl: HTMLElement
     let selectedFileIndex = -1 // -1 = no keyboard selection
 
-    $: groupFilteredFiles = bookmarkedFileManager.filterBySelectedGroups(bookmarkedFiles)
+    // bookmarkedFileManager is created in the plugin's onLayoutReady, which can run
+    // after the view is restored from the saved workspace at startup: guard it
+    $: groupFilteredFiles = bookmarkedFileManager && bookmarkedFiles
+        ? bookmarkedFileManager.filterBySelectedGroups(bookmarkedFiles)
+        : (bookmarkedFiles ?? [])
 
     $: filteredFileList = filterQuery.trim()
         ? groupFilteredFiles.filter(entry => {

@@ -42,8 +42,8 @@ export class EmbeddedHomeTab extends MarkdownRenderChild{
     onunload(): void {
         this.plugin.activeEmbeddedHomeTabViews.splice(this.plugin.activeEmbeddedHomeTabViews.findIndex(item => item.view == this.view),1)
         this.searchBar.dispose()
-        this.searchBar.fileSuggester.destroy()
-        this.homepage.$destroy()
+        this.searchBar.fileSuggester?.destroy()
+        this.homepage?.$destroy()
     }
 
     private parseCodeBlockContent(codeBlockContent: string){
@@ -115,7 +115,9 @@ export class HomeTabView extends FileView{
     async onClose(): Promise<void>{
         this.contentEl.removeClass('home-tab-view-content')
         this.searchBar.dispose()
-        this.searchBar.fileSuggester.destroy()  // 使用 destroy() 而不是 close()
-        this.homepage.$destroy();
+        // Guarded: onClose can run after a failed onOpen (e.g. workspace restore
+        // racing plugin layout-ready) where the suggester/homepage never loaded
+        this.searchBar.fileSuggester?.destroy()
+        this.homepage?.$destroy();
     }
 } 

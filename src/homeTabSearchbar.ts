@@ -181,9 +181,9 @@ export default class HomeTabSearchBar{
     }
 
     public focusSearchbar(): void {
-        // Set cursor on search bar
-        if (this.searchBarEl)
-            get(this.searchBarEl).focus();
+        // Set cursor on search bar (the element is only bound after the Svelte
+        // component mounts, which can happen after this is called at startup)
+        get(this.searchBarEl)?.focus();
     }
 
     /**

@@ -55,7 +55,7 @@
     {#each pluginSettings.contentSectionOrder as section (section)}
         {#if section === 'periodic' && renderPeriodicNotes}
             <PeriodicNotes {view} {pluginSettings} {HomeTabSearchBar}/>
-        {:else if section === 'bookmarks' && isbookmarkedPluginEnabled && bookmarkedFileList && renderbookmarkedFiles}
+        {:else if section === 'bookmarks' && plugin.bookmarkedFileManager && isbookmarkedPluginEnabled && bookmarkedFileList && renderbookmarkedFiles}
             <BookmarkedFiles bookmarkedFiles={bookmarkedFileList} {view} {pluginSettings} bookmarkedFileManager={plugin.bookmarkedFileManager} {HomeTabSearchBar}/>
         {:else if section === 'recent' && plugin.recentFileManager && recentFileList.length > 0 && renderRecentFiles}
             <RecentFiles {recentFileList} {view} {pluginSettings} recentFileManager={plugin.recentFileManager} {HomeTabSearchBar}/>

@@ -1,6 +1,6 @@
 {
   "name": "harbor-tab",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "description": "A browser-like home tab with instant file search, starred and recent files, and an optional interactive particle wordmark.",
   "main": "main.js",
   "scripts": {

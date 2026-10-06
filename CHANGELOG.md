@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.12.2](https://github.com/Moyf/harbor-tab/compare/1.12.1...1.12.2) - 2026-10-06
+
+### 🐛 Fixed
+
+- **Startup crash**: Guard the bookmarks section against the workspace-restore race where the view mounts before `bookmarkedFileManager` exists. The previous crash aborted the Svelte flush and cascaded into `filterBySelectedGroups` / `data` / `focus` / `destroy` errors that left the home tab unopenable for the session. The search bar focus and view teardown are now also safe when the view never finished opening.
+
+<details>
+<summary>中文说明（点击展开）</summary>
+
+- **启动崩溃**：修复启动时工作区恢复先于插件 `onLayoutReady`、书签区块在 `bookmarkedFileManager` 创建前挂载导致的崩溃。此前该错误会中断 Svelte 渲染队列，连锁产生 `filterBySelectedGroups` / `data` / `focus` / `destroy` 一系列报错，导致本次会话中首页标签页无法打开；搜索框聚焦与视图关闭现在也会在视图未完成打开时安全降级。
+
+</details>
+
 ## [1.12.1](https://github.com/Moyf/harbor-tab/compare/1.12.0...1.12.1) - 2026-10-06
 
 ### ⚡ Changed
