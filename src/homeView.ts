@@ -3,6 +3,7 @@ import type HomeTab from "./main";
 import Homepage from './ui/homepage.svelte'
 import HomeTabSearchBar from "./homeTabSearchbar";
 import { t } from "./i18n";
+import { installPointerGlow, type PointerGlowHandle } from "./utils/pointerGlow";
 
 export const VIEW_TYPE = "home-tab-view";
 
@@ -15,6 +16,7 @@ export class EmbeddedHomeTab extends MarkdownRenderChild{
     bookmarkedFiles: boolean | undefined
     periodicNotes: boolean | undefined
     searchbarOnly: boolean | undefined
+    private pointerGlow: PointerGlowHandle | null = null
 
     constructor(containerEl: HTMLElement, view: View, plugin: HomeTab, codeBlockContent: string){
         super(containerEl)
@@ -37,10 +39,22 @@ export class EmbeddedHomeTab extends MarkdownRenderChild{
         })
 
         this.searchBar.load()
+
+        // The pointer glow follows its own document: embedded tabs can live in
+        // a workspace popout, so resolve `document` from the rendered element.
+        this.pointerGlow = installPointerGlow(this.containerEl.ownerDocument)
+        this.pointerGlow.setEnabled(this.plugin.settings.pointerGlow !== false)
+    }
+
+    /** Runtime toggle from the settings page: no rebuild needed. */
+    setPointerGlowEnabled(enabled: boolean): void {
+        this.pointerGlow?.setEnabled(enabled)
     }
 
     onunload(): void {
         this.plugin.activeEmbeddedHomeTabViews.splice(this.plugin.activeEmbeddedHomeTabViews.findIndex(item => item.view == this.view),1)
+        this.pointerGlow?.destroy()
+        this.pointerGlow = null
         this.searchBar.dispose()
         this.searchBar.fileSuggester.close()
         this.homepage.$destroy()
@@ -72,6 +86,7 @@ export class EmbeddedHomeTab extends MarkdownRenderChild{
 
 export class HomeTabView extends FileView{
     plugin: HomeTab
+    private pointerGlow: PointerGlowHandle | null = null
     homepage: Homepage
     searchBar: HomeTabSearchBar
     containerEl: HTMLElement
@@ -107,11 +122,23 @@ export class HomeTabView extends FileView{
         this.searchBar.load()
         this.searchBar.focusSearchbar()
 
+        // A Harbor Tab can live in a workspace popout with its own document,
+        // so resolve `document` from the view's own content element.
+        this.pointerGlow = installPointerGlow(this.contentEl.ownerDocument)
+        this.pointerGlow.setEnabled(this.plugin.settings.pointerGlow !== false)
+
         // this.fileSuggester = new HomeTabFileSuggester(this.app, this.plugin, this,
             // get(this.searchBarEl), get(this.suggestionContainerEl))
     }
 
+    /** Runtime toggle from the settings page: no rebuild needed. */
+    setPointerGlowEnabled(enabled: boolean): void {
+        this.pointerGlow?.setEnabled(enabled)
+    }
+
     async onClose(): Promise<void>{
+        this.pointerGlow?.destroy()
+        this.pointerGlow = null
         this.searchBar.dispose()
         this.searchBar.fileSuggester.destroy()  // 使用 destroy() 而不是 close()
         this.homepage.$destroy();

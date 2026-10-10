@@ -186,6 +186,21 @@ export default class HomeTab extends Plugin {
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings)
 		pluginSettingsStore.update(() => this.settings)
+		this.syncPointerGlowState()
+	}
+
+	/**
+	 * Push the pointer-glow toggle to every open Harbor Tab without a rebuild:
+	 * handles flip an internal flag and the store updates the Svelte attribute,
+	 * so already-lit cards fade out on the next style recalculation.
+	 */
+	private syncPointerGlowState(): void {
+		const enabled = this.settings.pointerGlow !== false
+		this.app.workspace.getLeavesOfType(VIEW_TYPE).forEach((leaf) => {
+			const view = leaf.view
+			if (view instanceof HomeTabView) view.setPointerGlowEnabled(enabled)
+		})
+		this.activeEmbeddedHomeTabViews.forEach((embedded) => embedded.setPointerGlowEnabled(enabled))
 	}
 
 	private onLayoutChange(): void{

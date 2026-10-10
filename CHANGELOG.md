@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Features
+
+- **Pointer glow**: a soft light follows the pointer across the file cards, fading out when it leaves. The glow paints in each card's background layer so it never washes over content, follows the active theme (light cards take a cool shade, dark cards take white), and honors `prefers-reduced-motion`. Toggle it in Settings → Harbor Tab → Appearance (on by default).
+
+<details>
+<summary>中文说明（点击展开）</summary>
+
+### 新增
+
+- **指针光晕**：鼠标划过文件卡片时跟随指针的微光，移开后淡出。光晕绘制在卡片自身的背景层，不会盖住内容；自动跟随明暗主题（浅色卡片用冷色调，深色卡片用白光），并遵循系统的「减弱动态效果」设置。在 设置 → Harbor Tab → 外观 中开关（默认开启）。
+
+</details>
+
+---
+
 ## [1.8.0] - 2026-09-30
 
 ### Features

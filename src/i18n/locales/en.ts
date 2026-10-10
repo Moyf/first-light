@@ -466,6 +466,10 @@ const en: BaseMessage = {
 			name: 'Idle motion frequency',
 			desc: 'Speed of the idle motion (higher = faster); for Heartbeat this sets the interval between beats',
 		},
+		pointerGlow: {
+			name: 'Pointer glow',
+			desc: 'A soft light follows the pointer across the file cards, fading out when it leaves',
+		},
 		particleEffectGlow: {
 			name: 'Glow strength',
 			desc: 'Adds a bloom glow around the particles; 0 disables it, higher values glow brighter',
